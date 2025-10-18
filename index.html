@@ -275,7 +275,7 @@ function setupChipEditor(section) {
     // Scroll to zoom image
     const rect=container.getBoundingClientRect();
     const cx=e.clientX-rect.left-150, cy=e.clientY-rect.top-150;
-    const newScale=Math.min(Math.max(0.2,scale*(1-e.deltaY*0.002)),5);
+    const newScale=Math.min(Math.max(0.05,scale*(1-e.deltaY*0.002)),5);
     offset.x-=cx*(newScale/scale-1); offset.y-=cy*(newScale/scale-1);
     scale=newScale;
     updateTransform();
@@ -313,7 +313,7 @@ function setupChipEditor(section) {
     else if(e.touches.length===2){
       const newDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
       const zoomFactor=newDist/lastTouchDist;
-      scale=Math.min(Math.max(0.2, scale*zoomFactor),5);
+      scale=Math.min(Math.max(0.05, scale*zoomFactor),5);
       lastTouchDist=newDist;
       updateTransform();
       drawCanvas();
