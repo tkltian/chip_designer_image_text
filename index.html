@@ -78,8 +78,8 @@ h1 { margin-bottom:20px; }
         </div>
         <div class="range-control">
           <label>Spacing:</label>
-          <input type="range" class="char-spacing" min="-0.5" max="2" value="0.3" step="0.1">
-          <span class="range-value char-spacing-value">0.3</span>
+          <input type="range" class="char-spacing" min="-0.5" max="2" value="0" step="0.1">
+          <span class="range-value char-spacing-value">0</span>
         </div>
       </div>
     </div>
@@ -124,8 +124,8 @@ h1 { margin-bottom:20px; }
         </div>
         <div class="range-control">
           <label>Spacing:</label>
-          <input type="range" class="char-spacing" min="-0.5" max="2" value="0.3" step="0.1">
-          <span class="range-value char-spacing-value">0.3</span>
+          <input type="range" class="char-spacing" min="-0.5" max="2" value="0" step="0.1">
+          <span class="range-value char-spacing-value">0</span>
         </div>
       </div>
     </div>
@@ -478,7 +478,9 @@ function setupChipEditor(section) {
         // Cap at 270 degrees (3π/2) to prevent wrapping too far
         totalAngle = Math.min(totalAngle, Math.PI * 1.5);
 
-        const startAngle = Math.PI/2 + totalAngle/2; // Center on bottom, start from right
+        // Center on bottom: start from RIGHT edge of the arc (for readable text)
+        const centerAngle = Math.PI/2; // Bottom center (90 degrees)
+        const startAngle = centerAngle + totalAngle/2; // Right edge of bottom arc
 
         // Draw arc guide when hovering
         if(textBox.hovering && !textBox.dragging){
@@ -492,7 +494,7 @@ function setupChipEditor(section) {
           ctx.restore();
         }
 
-        // Position each character based on its actual width (right to left)
+        // Position each character based on its actual width (right to left for readability)
         let currentAngle = startAngle;
         for(let i=0; i<textValue.length; i++){
           const char = textValue[i];
@@ -504,13 +506,13 @@ function setupChipEditor(section) {
 
           ctx.save();
           ctx.translate(size/2+radius*Math.cos(angle),size/2+radius*Math.sin(angle));
-          ctx.rotate(angle-Math.PI/2); // Subtract PI/2 to keep characters upright
+          ctx.rotate(angle-Math.PI/2); // Subtract PI/2 to keep characters upright (same as curved upper)
           ctx.strokeText(char,0,0);
           ctx.fillText(char,0,0);
           ctx.restore();
 
           // Move to next character position (char width + spacing)
-          currentAngle -= charAngle + (fontSize * 0.3) / radius;
+          currentAngle -= charAngle + (fontSize * charSpacing) / radius;
         }
       }
     }
