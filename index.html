@@ -82,6 +82,15 @@ h1 { margin-bottom:20px; }
           <span class="range-value char-spacing-value">0</span>
         </div>
       </div>
+      <div class="text-editor-row">
+        <select class="text-effect">
+          <option value="none">No Effect</option>
+          <option value="shadow">Drop Shadow</option>
+          <option value="emboss">Embossed</option>
+          <option value="outline">Bold Outline</option>
+          <option value="glow">Glow</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -128,6 +137,15 @@ h1 { margin-bottom:20px; }
           <span class="range-value char-spacing-value">0</span>
         </div>
       </div>
+      <div class="text-editor-row">
+        <select class="text-effect">
+          <option value="none">No Effect</option>
+          <option value="shadow">Drop Shadow</option>
+          <option value="emboss">Embossed</option>
+          <option value="outline">Bold Outline</option>
+          <option value="glow">Glow</option>
+        </select>
+      </div>
     </div>
   </div>
 </div>
@@ -164,6 +182,7 @@ function setupChipEditor(section) {
   const textSizeValue = section.querySelector('.text-size-value');
   const charSpacingInput = section.querySelector('.char-spacing');
   const charSpacingValue = section.querySelector('.char-spacing-value');
+  const textEffectSelect = section.querySelector('.text-effect');
 
   // Create and append canvas for displaying the composite
   const canvas = document.createElement('canvas');
@@ -315,9 +334,76 @@ function setupChipEditor(section) {
     charSpacingValue.textContent = charSpacingInput.value;
     drawCanvas();
   });
+  textEffectSelect.addEventListener('change', drawCanvas);
 
   function updateTransform(){
     image.style.transform=`translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${scale})`;
+  }
+
+  function drawTextWithEffect(text, x, y){
+    const effect = textEffectSelect.value;
+    const fontSize = parseInt(textSizeInput.value);
+    const textColor = textColorInput.value;
+
+    if(effect === 'shadow'){
+      // Drop shadow effect
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillText(text, x+3, y+3);
+      ctx.restore();
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = Math.max(2, fontSize/12);
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+    }
+    else if(effect === 'emboss'){
+      // Embossed 3D effect
+      ctx.save();
+      // Dark shadow (bottom right)
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillText(text, x+2, y+2);
+      // Light highlight (top left)
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText(text, x-1, y-1);
+      ctx.restore();
+      // Main text
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+    }
+    else if(effect === 'outline'){
+      // Bold outline effect
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = Math.max(4, fontSize/6);
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+    }
+    else if(effect === 'glow'){
+      // Glow effect
+      ctx.save();
+      ctx.shadowColor = textColor;
+      ctx.shadowBlur = fontSize/3;
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+      ctx.shadowBlur = fontSize/2;
+      ctx.fillText(text, x, y);
+      ctx.restore();
+      // Add white stroke
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = Math.max(2, fontSize/12);
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+    }
+    else {
+      // No effect - original white stroke + color fill
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = Math.max(2, fontSize/12);
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+    }
   }
 
   function drawCanvas(){
@@ -395,8 +481,7 @@ function setupChipEditor(section) {
           for(let i=0; i<line.length; i++){
             const char = line[i];
             const charWidth = ctx.measureText(char).width;
-            ctx.strokeText(char, currentX + charWidth/2, lineY);
-            ctx.fillText(char, currentX + charWidth/2, lineY);
+            drawTextWithEffect(char, currentX + charWidth/2, lineY);
             currentX += charWidth + (i < line.length - 1 ? fontSize * charSpacing : 0);
           }
         });
@@ -449,8 +534,7 @@ function setupChipEditor(section) {
           ctx.save();
           ctx.translate(size/2+radius*Math.cos(angle),size/2+radius*Math.sin(angle));
           ctx.rotate(angle+Math.PI/2);
-          ctx.strokeText(char,0,0);
-          ctx.fillText(char,0,0);
+          drawTextWithEffect(char,0,0);
           ctx.restore();
 
           // Move to next character position (char width + spacing)
@@ -507,8 +591,7 @@ function setupChipEditor(section) {
           ctx.save();
           ctx.translate(size/2+radius*Math.cos(angle),size/2+radius*Math.sin(angle));
           ctx.rotate(angle-Math.PI/2); // Subtract PI/2 to keep characters upright (same as curved upper)
-          ctx.strokeText(char,0,0);
-          ctx.fillText(char,0,0);
+          drawTextWithEffect(char,0,0);
           ctx.restore();
 
           // Move to next character position (char width + spacing)
