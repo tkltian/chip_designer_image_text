@@ -24,9 +24,13 @@ h1 { margin-bottom:20px; }
 #three-container { margin-top:40px; width:400px; height:400px; display:none; border:1px solid #ccc; }
 #debug-canvases { display:flex; gap:10px; margin-top:20px; }
 #debug-canvases img { border:1px solid #ccc; }
-.text-editor { margin-top:10px; display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
-.text-editor input, .text-editor select { font-size:14px; padding:4px; }
-.text-editor textarea { font-size:14px; padding:4px; resize:vertical; font-family:sans-serif; width:200px; }
+.text-editor { margin-top:10px; display:flex; flex-direction:column; gap:8px; align-items:center; }
+.text-editor-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
+.text-editor input, .text-editor select { font-size:14px; padding:5px; }
+.text-editor textarea { font-size:14px; padding:6px; resize:vertical; font-family:sans-serif; width:100%; max-width:280px; }
+.text-editor label { display:flex; align-items:center; gap:5px; font-size:13px; }
+.text-editor .range-control { display:flex; align-items:center; gap:5px; }
+.text-editor .range-value { min-width:35px; font-size:12px; color:#666; }
 .circle-canvas { position:absolute; top:0; left:0; width:100%; height:100%; user-select:none; pointer-events:none; }
 </style>
 </head>
@@ -43,19 +47,41 @@ h1 { margin-bottom:20px; }
     <button class="download-btn" disabled>Download Front</button>
     <div class="text-editor">
       <textarea class="text-input" placeholder="Enter text (multiple lines supported)" rows="2"></textarea>
-      <select class="font-select">
-        <option value="Arial">Arial</option>
-        <option value="Verdana">Verdana</option>
-        <option value="Times New Roman">Times New Roman</option>
-        <option value="Courier New">Courier New</option>
-      </select>
-      <select class="text-mode">
-        <option value="straight">Straight</option>
-        <option value="curved-upper">Curved Upper</option>
-        <option value="curved-lower">Curved Lower</option>
-      </select>
-      <label>Color: <input type="color" class="text-color" value="#000000"></label>
-      <label>Size: <input type="range" class="text-size" min="12" max="72" value="24" step="1"> <span class="text-size-value">24px</span></label>
+      <div class="text-editor-row">
+        <select class="font-select">
+          <option value="Arial">Arial</option>
+          <option value="Verdana">Verdana</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Impact">Impact</option>
+          <option value="Comic Sans MS">Comic Sans MS</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+          <option value="Palatino">Palatino</option>
+          <option value="Garamond">Garamond</option>
+          <option value="Bookman">Bookman</option>
+          <option value="Tahoma">Tahoma</option>
+          <option value="Lucida Console">Lucida Console</option>
+        </select>
+        <select class="text-mode">
+          <option value="straight">Straight</option>
+          <option value="curved-upper">Curved Upper</option>
+          <option value="curved-lower">Curved Lower</option>
+        </select>
+        <label>Color: <input type="color" class="text-color" value="#000000"></label>
+      </div>
+      <div class="text-editor-row">
+        <div class="range-control">
+          <label>Size:</label>
+          <input type="range" class="text-size" min="12" max="72" value="24" step="1">
+          <span class="range-value text-size-value">24px</span>
+        </div>
+        <div class="range-control">
+          <label>Spacing:</label>
+          <input type="range" class="char-spacing" min="-0.5" max="2" value="0.3" step="0.1">
+          <span class="range-value char-spacing-value">0.3</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -67,19 +93,41 @@ h1 { margin-bottom:20px; }
     <button class="download-btn" disabled>Download Back</button>
     <div class="text-editor">
       <textarea class="text-input" placeholder="Enter text (multiple lines supported)" rows="2"></textarea>
-      <select class="font-select">
-        <option value="Arial">Arial</option>
-        <option value="Verdana">Verdana</option>
-        <option value="Times New Roman">Times New Roman</option>
-        <option value="Courier New">Courier New</option>
-      </select>
-      <select class="text-mode">
-        <option value="straight">Straight</option>
-        <option value="curved-upper">Curved Upper</option>
-        <option value="curved-lower">Curved Lower</option>
-      </select>
-      <label>Color: <input type="color" class="text-color" value="#000000"></label>
-      <label>Size: <input type="range" class="text-size" min="12" max="72" value="24" step="1"> <span class="text-size-value">24px</span></label>
+      <div class="text-editor-row">
+        <select class="font-select">
+          <option value="Arial">Arial</option>
+          <option value="Verdana">Verdana</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Impact">Impact</option>
+          <option value="Comic Sans MS">Comic Sans MS</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+          <option value="Palatino">Palatino</option>
+          <option value="Garamond">Garamond</option>
+          <option value="Bookman">Bookman</option>
+          <option value="Tahoma">Tahoma</option>
+          <option value="Lucida Console">Lucida Console</option>
+        </select>
+        <select class="text-mode">
+          <option value="straight">Straight</option>
+          <option value="curved-upper">Curved Upper</option>
+          <option value="curved-lower">Curved Lower</option>
+        </select>
+        <label>Color: <input type="color" class="text-color" value="#000000"></label>
+      </div>
+      <div class="text-editor-row">
+        <div class="range-control">
+          <label>Size:</label>
+          <input type="range" class="text-size" min="12" max="72" value="24" step="1">
+          <span class="range-value text-size-value">24px</span>
+        </div>
+        <div class="range-control">
+          <label>Spacing:</label>
+          <input type="range" class="char-spacing" min="-0.5" max="2" value="0.3" step="0.1">
+          <span class="range-value char-spacing-value">0.3</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -114,6 +162,8 @@ function setupChipEditor(section) {
   const textColorInput = section.querySelector('.text-color');
   const textSizeInput = section.querySelector('.text-size');
   const textSizeValue = section.querySelector('.text-size-value');
+  const charSpacingInput = section.querySelector('.char-spacing');
+  const charSpacingValue = section.querySelector('.char-spacing-value');
 
   // Create and append canvas for displaying the composite
   const canvas = document.createElement('canvas');
@@ -261,6 +311,10 @@ function setupChipEditor(section) {
     textSizeValue.textContent = textSizeInput.value + 'px';
     drawCanvas();
   });
+  charSpacingInput.addEventListener('input', ()=>{
+    charSpacingValue.textContent = charSpacingInput.value;
+    drawCanvas();
+  });
 
   function updateTransform(){
     image.style.transform=`translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${scale})`;
@@ -300,12 +354,17 @@ function setupChipEditor(section) {
         const lines = textValue.split('\n');
         const lineHeight = fontSize * 1.2; // 1.2x line spacing
         const totalHeight = lines.length * lineHeight;
+        const charSpacing = parseFloat(charSpacingInput.value);
 
-        // Calculate max width for bounding box
+        // Calculate max width for bounding box (with spacing)
         let maxWidth = 0;
         lines.forEach(line => {
-          const metrics = ctx.measureText(line);
-          if(metrics.width > maxWidth) maxWidth = metrics.width;
+          let lineWidth = 0;
+          for(let i=0; i<line.length; i++){
+            lineWidth += ctx.measureText(line[i]).width;
+            if(i < line.length - 1) lineWidth += fontSize * charSpacing;
+          }
+          if(lineWidth > maxWidth) maxWidth = lineWidth;
         });
 
         // Draw bounding box when hovering
@@ -320,25 +379,41 @@ function setupChipEditor(section) {
           ctx.restore();
         }
 
-        // Draw each line centered
+        // Draw each line centered with custom character spacing
         lines.forEach((line, index) => {
           const lineY = ty - totalHeight/2 + (index + 0.5) * lineHeight;
-          ctx.strokeText(line, tx, lineY);
-          ctx.fillText(line, tx, lineY);
+
+          // Calculate line width with spacing
+          let lineWidth = 0;
+          for(let i=0; i<line.length; i++){
+            lineWidth += ctx.measureText(line[i]).width;
+            if(i < line.length - 1) lineWidth += fontSize * charSpacing;
+          }
+
+          // Draw each character with spacing
+          let currentX = tx - lineWidth/2;
+          for(let i=0; i<line.length; i++){
+            const char = line[i];
+            const charWidth = ctx.measureText(char).width;
+            ctx.strokeText(char, currentX + charWidth/2, lineY);
+            ctx.fillText(char, currentX + charWidth/2, lineY);
+            currentX += charWidth + (i < line.length - 1 ? fontSize * charSpacing : 0);
+          }
         });
       }
       else if(textModeSelect.value==="curved-upper"){
         const radius=size/2-40;
 
         // Calculate total arc length needed based on character widths
+        const charSpacing = parseFloat(charSpacingInput.value);
         let totalArcLength = 0;
         for(let i=0; i<textValue.length; i++){
           const charWidth = ctx.measureText(textValue[i]).width;
           totalArcLength += charWidth;
         }
 
-        // Add spacing between characters (0.3x font size per character)
-        totalArcLength += (textValue.length - 1) * fontSize * 0.3;
+        // Add spacing between characters (adjustable)
+        totalArcLength += (textValue.length - 1) * fontSize * charSpacing;
 
         // Calculate angle needed for this arc length
         // arc length = radius × angle, so angle = arc length / radius
@@ -379,21 +454,22 @@ function setupChipEditor(section) {
           ctx.restore();
 
           // Move to next character position (char width + spacing)
-          currentAngle += charAngle + (fontSize * 0.3) / radius;
+          currentAngle += charAngle + (fontSize * charSpacing) / radius;
         }
       }
       else if(textModeSelect.value==="curved-lower"){
         const radius=size/2-40;
 
         // Calculate total arc length needed based on character widths
+        const charSpacing = parseFloat(charSpacingInput.value);
         let totalArcLength = 0;
         for(let i=0; i<textValue.length; i++){
           const charWidth = ctx.measureText(textValue[i]).width;
           totalArcLength += charWidth;
         }
 
-        // Add spacing between characters (0.3x font size per character)
-        totalArcLength += (textValue.length - 1) * fontSize * 0.3;
+        // Add spacing between characters (adjustable)
+        totalArcLength += (textValue.length - 1) * fontSize * charSpacing;
 
         // Calculate angle needed for this arc length
         // arc length = radius × angle, so angle = arc length / radius
