@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D + 3D Chip Preview</title>
+<style>
+  body { font-family:sans-serif; background:#f5f5f5; display:flex; flex-direction:column; align-items:center; padding:20px; }
+  h1 { margin-bottom:20px; }
+  .chips-wrapper { display:flex; flex-wrap:wrap; justify-content:center; gap:40px; }
+  .chip-section { display:flex; flex-direction:column; align-items:center; }
+  .chip-title { font-weight:bold; margin-bottom:8px; }
+  .circle-container { position:relative; width:300px; height:300px; border-radius:50%; overflow:hidden; background-color:#eee; border:5px solid #bbb; box-shadow:0 4px 12px rgba(0,0,0,0.25); cursor:grab; touch-action:none; }
+  .circle-container:active { cursor:grabbing; }
+  .circle-image { position:absolute; top:50%; left:50%; transform-origin:center center; user-select:none; -webkit-user-drag:none; pointer-events:none; transform:translate(-50%,-50%) scale(1); }
+  .upload-input { margin-top:10px; }
+  .instructions { margin-top:10px; color:#666; font-size:14px; text-align:center; }
+  .download-btn { margin-top:15px; padding:8px 14px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer; font-size:15px; }
+  .download-btn:disabled { background:#999; cursor:not-allowed; }
+  .download-btn:hover:not(:disabled) { background:#0056cc; }
+
+  #generate3d-btn { margin-top:40px; padding:10px 18px; font-size:16px; background:#28a745; border:none; color:white; border-radius:5px; cursor:pointer; }
+  #generate3d-btn:hover { background:#1f8a39; }
+  .color-selector { margin-top:10px; font-size:14px; }
+  #three-container { margin-top:40px; width:400px; height:400px; display:none; border:1px solid #ccc; }
+  #debug-canvases { display:flex; gap:10px; margin-top:20px; }
+  #debug-canvases img { border:1px solid #ccc; }
+</style>
+</head>
+<body>
+
+<h1>2D + 3D Chip Preview</h1>
+
+<div class="chips-wrapper">
+  <div class="chip-section" id="front-chip">
+    <div class="chip-title">Front Side</div>
+    <div class="circle-container"><img class="circle-image" src=""></div>
+    <input type="file" class="upload-input" accept="image/*">
+    <p class="instructions">💡 Drag to move | Scroll or pinch to zoom</p>
+    <button class="download-btn" disabled>Download Front</button>
+  </div>
+
+  <div class="chip-section" id="back-chip">
+    <div class="chip-title">Back Side</div>
+    <div class="circle-container"><img class="circle-image" src=""></div>
+    <input type="file" class="upload-input" accept="image/*">
+    <p class="instructions">💡 Drag to move | Scroll or pinch to zoom</p>
+    <button class="download-btn" disabled>Download Back</button>
+  </div>
+</div>
+
+<button id="generate3d-btn">✨ Generate 3D Preview</button>
+<div class="color-selector">
+  Edge Color: <input type="color" id="edge-color" value="#007bff">
+</div>
+
+<div id="three-container"></div>
+
+<!-- Debug canvases -->
+<div id="debug-canvases">
+  <div>
+    <div>Front canvas:</div>
+    <img id="debug-front" width="100" height="100">
+  </div>
+  <div>
+    <div>Back canvas:</div>
+    <img id="debug-back" width="100" height="100">
+  </div>
+</div>
+
+<!-- 2D Editor JS -->
+<script>
+function setupChipEditor(section) {
+  const container = section.querySelector('.circle-container');
+  const image = section.querySelector('.circle-image');
+  const input = section.querySelector('.upload-input');
+  const downloadBtn = section.querySelector('.download-btn');
+  let scale = 1, offset = {x:0,y:0}, dragging=false, start={x:0,y:0};
+  let originalImage = new Image(), lastTouchDist=0;
+
+  input.addEventListener('change', e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=> { originalImage.src=reader.result; image.src=reader.result;
+      originalImage.onload = ()=>{ scale=1; offset={x:0,y:0}; updateTransform(); downloadBtn.disabled=false; } };
+    reader.readAsDataURL(file);
+  });
+
+  container.addEventListener('mousedown', e=>{ dragging=true; start={x:e.clientX-offset.x, y:e.clientY-offset.y}; });
+  window.addEventListener('mouseup', ()=>dragging=false);
+  window.addEventListener('mousemove', e=>{ if(!dragging) return; offset.x=e.clientX-start.x; offset.y=e.clientY-start.y; updateTransform(); });
+
+  container.addEventListener('wheel', e=>{ e.preventDefault();
+    const zoomStep=0.002; const newScale=Math.min(Math.max(0.2, scale*(1-e.deltaY*zoomStep)),5);
+    const rect=container.getBoundingClientRect();
+    const cx=e.clientX-rect.left-rect.width/2, cy=e.clientY-rect.top-rect.height/2;
+    offset.x-=cx*(newScale/scale-1); offset.y-=cy*(newScale/scale-1); scale=newScale; updateTransform();
+  });
+
+  container.addEventListener('touchstart', e=>{ if(e.touches.length===1){ dragging=true; start={x:e.touches[0].clientX-offset.x, y:e.touches[0].clientY-offset.y}; } 
+    else if(e.touches.length===2){ dragging=false; lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); } });
+
+  container.addEventListener('touchmove', e=>{ e.preventDefault();
+    if(e.touches.length===1 && dragging){ offset.x=e.touches[0].clientX-start.x; offset.y=e.touches[0].clientY-start.y; updateTransform(); }
+    else if(e.touches.length===2){ const newDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      const zoomFactor=newDist/lastTouchDist; scale=Math.min(Math.max(0.2, scale*zoomFactor),5); lastTouchDist=newDist; updateTransform(); }
+  });
+  container.addEventListener('touchend', ()=>dragging=false);
+
+  function updateTransform(){ image.style.transform=`translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${scale})`; }
+
+  section.getCanvasDataURL = ()=>{ 
+    if(!originalImage.src) return null;
+    const size=300, canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
+    canvas.width=size; canvas.height=size;
+    ctx.clearRect(0,0,size,size);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(size/2,size/2,size/2,0,Math.PI*2);
+    ctx.closePath();
+    ctx.clip();
+    const iw=originalImage.width, ih=originalImage.height;
+    const sw=iw*scale, sh=ih*scale;
+    const dx=(size-sw)/2 + offset.x;
+    const dy=(size-sh)/2 + offset.y;
+    ctx.drawImage(originalImage,dx,dy,sw,sh);
+    ctx.restore();
+    console.log(`🔹 Canvas generated for 3D: scale=${scale}, offset=(${offset.x},${offset.y})`);
+    return canvas.toDataURL('image/png');
+  };
+}
+
+const frontSection = document.getElementById('front-chip');
+const backSection = document.getElementById('back-chip');
+setupChipEditor(frontSection); setupChipEditor(backSection);
+</script>
+
+<!-- 3D Preview JS -->
+<script type="module">
+    document.getElementById('generate3d-btn').addEventListener('click', async () => {
+      console.log("🔹 Generate 3D Preview button clicked");
+    
+      const frontURL = frontSection.getCanvasDataURL();
+      const backURL = backSection.getCanvasDataURL();
+    
+      // Debug canvases
+      const debugFront = document.getElementById('debug-front');
+      const debugBack = document.getElementById('debug-back');
+      if(debugFront) debugFront.src = frontURL;
+      if(debugBack) debugBack.src = backURL;
+      console.log("🔹 Debug canvases updated for 3D preview");
+    
+      if(!frontURL || !backURL){
+        alert("Please upload both front and back images");
+        console.log("❌ Missing front or back image");
+        return;
+      }
+    
+      try{
+        console.log("🔹 Loading Three.js modules...");
+        const THREE = await import('https://cdn.skypack.dev/three@0.129.0/build/three.module.js');
+        const { OrbitControls } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/controls/OrbitControls.js');
+        console.log("✅ Three.js and OrbitControls loaded");
+    
+        const container3d = document.getElementById('three-container');
+        container3d.style.display='block';
+        container3d.innerHTML='';
+        console.log("🔹 3D container displayed");
+    
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45,1,0.1,1000);
+        camera.position.set(0,1.5,3);
+    
+        const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+        renderer.setSize(400,400);
+        container3d.appendChild(renderer.domElement);
+        console.log("🔹 Renderer created");
+    
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enablePan=false;
+        controls.minDistance=2;
+        controls.maxDistance=6;
+    
+        // Track user interaction
+        let userIsInteracting = false;
+        controls.addEventListener('start', ()=>{ userIsInteracting=true; });
+        controls.addEventListener('end', ()=>{ userIsInteracting=false; });
+        console.log("🔹 OrbitControls initialized with auto-rotate support");
+    
+        // Lighting
+        const dirLight = new THREE.DirectionalLight(0xffffff,0.8);
+        dirLight.position.set(5,5,5);
+        scene.add(dirLight);
+    
+        const ambLight = new THREE.AmbientLight(0xffffff,0.4);
+        scene.add(ambLight);
+    
+        const hemiLight = new THREE.HemisphereLight(0xffffff,0x444444,0.3);
+        scene.add(hemiLight);
+        console.log("🔹 Lighting added");
+    
+        const loader = new THREE.TextureLoader();
+        console.log("🔹 Loading front texture...");
+        loader.load(frontURL, frontTex=>{
+          console.log("✅ Front texture loaded");
+          loader.load(backURL, backTex=>{
+            console.log("✅ Back texture loaded");
+    
+            const radius=1;
+            const height=0.07;
+            const sideColor = document.getElementById('edge-color').value;
+    
+            // Create materials
+            const sideMat = new THREE.MeshStandardMaterial({color:sideColor, metalness:0.6, roughness:0.3});
+            const frontMat = new THREE.MeshStandardMaterial({map:frontTex, metalness:0.2, roughness:0.4});
+            const backMat = new THREE.MeshStandardMaterial({map:backTex, metalness:0.2, roughness:0.4});
+            const bevelMat = new THREE.MeshStandardMaterial({color:sideColor, metalness:0.6, roughness:0.3});
+    
+            // Create geometries
+            const cylinderGeom = new THREE.CylinderGeometry(radius,radius,height,64,1,true);
+            const circleGeom = new THREE.CircleGeometry(radius,64);
+            const bevelRadius=0.02;
+    
+            const cylinder = new THREE.Mesh(cylinderGeom, sideMat);
+            const frontMesh = new THREE.Mesh(circleGeom, frontMat);
+            frontMesh.rotation.x=-Math.PI/2;
+            frontMesh.position.y=height/2+0.01;
+    
+            const backMesh = new THREE.Mesh(circleGeom, backMat);
+            backMesh.rotation.x=-Math.PI/2;
+            backMesh.rotation.y=Math.PI;
+            backMesh.position.y=-height/2-0.01;
+    
+            const frontBevel = new THREE.Mesh(new THREE.TorusGeometry(radius-bevelRadius/2, bevelRadius,16,100),bevelMat);
+            frontBevel.rotation.x=Math.PI/2;
+            frontBevel.position.y=height/2+0.01;
+    
+            const backBevel = new THREE.Mesh(new THREE.TorusGeometry(radius-bevelRadius/2, bevelRadius,16,100),bevelMat);
+            backBevel.rotation.x=Math.PI/2;
+            backBevel.position.y=-height/2-0.01;
+    
+            // Group all parts
+            const chipGroup = new THREE.Group();
+            chipGroup.add(cylinder, frontMesh, backMesh, frontBevel, backBevel);
+            scene.add(chipGroup);
+            console.log("✅ Chip group created with all parts");
+
+            // Set initial orientation: front side facing the user
+            chipGroup.rotation.x = Math.PI / 2; // rotates the chip upright
+            chipGroup.rotation.y = 0;           // optional, keeps it centered
+            chipGroup.rotation.z = 0;           // optional
+    
+            // Animate with auto-rotation
+            let rotationSpeed=0.005;
+            function animate(){
+              requestAnimationFrame(animate);
+              if(!userIsInteracting){
+                chipGroup.rotation.z += rotationSpeed;
+              }
+              renderer.render(scene,camera);
+            }
+            animate();
+            console.log("✅ Animation started with auto-rotation");
+    
+            // Live edge color update
+            document.getElementById('edge-color').addEventListener('input',()=>{
+              sideMat.color.set(document.getElementById('edge-color').value);
+              bevelMat.color.set(document.getElementById('edge-color').value);
+              console.log(`🔹 Edge color updated to ${document.getElementById('edge-color').value}`);
+            });
+    
+          },undefined,err=>console.error("❌ Back texture load error:",err));
+        },undefined,err=>console.error("❌ Front texture load error:",err));
+    
+      }catch(err){
+        console.error("❌ Error initializing 3D preview:",err);
+      }
+    });
+    </script>
+    

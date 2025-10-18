@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D + 3D Chip Editor with Text</title>
+<style>
+body { font-family:sans-serif; background:#f5f5f5; display:flex; flex-direction:column; align-items:center; padding:20px; }
+h1 { margin-bottom:20px; }
+.chips-wrapper { display:flex; flex-wrap:wrap; justify-content:center; gap:40px; }
+.chip-section { display:flex; flex-direction:column; align-items:center; }
+.chip-title { font-weight:bold; margin-bottom:8px; }
+.circle-container { position:relative; width:300px; height:300px; border-radius:50%; overflow:hidden; background-color:#eee; border:5px solid #bbb; box-shadow:0 4px 12px rgba(0,0,0,0.25); cursor:grab; touch-action:none; }
+.circle-container:active { cursor:grabbing; }
+.circle-image { position:absolute; top:50%; left:50%; transform-origin:center center; user-select:none; -webkit-user-drag:none; pointer-events:none; transform:translate(-50%,-50%) scale(1); }
+.upload-input { margin-top:10px; }
+.instructions { margin-top:10px; color:#666; font-size:14px; text-align:center; }
+.download-btn { margin-top:15px; padding:8px 14px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer; font-size:15px; }
+.download-btn:disabled { background:#999; cursor:not-allowed; }
+.download-btn:hover:not(:disabled) { background:#0056cc; }
+#generate3d-btn { margin-top:40px; padding:10px 18px; font-size:16px; background:#28a745; border:none; color:white; border-radius:5px; cursor:pointer; }
+#generate3d-btn:hover { background:#1f8a39; }
+.color-selector { margin-top:10px; font-size:14px; }
+#three-container { margin-top:40px; width:400px; height:400px; display:none; border:1px solid #ccc; }
+#debug-canvases { display:flex; gap:10px; margin-top:20px; }
+#debug-canvases img { border:1px solid #ccc; }
+.text-editor { margin-top:10px; display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
+.text-editor input, .text-editor select { font-size:14px; padding:4px; }
+.text-editor textarea { font-size:14px; padding:4px; resize:vertical; font-family:sans-serif; width:200px; }
+.circle-canvas { position:absolute; top:0; left:0; width:100%; height:100%; user-select:none; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<h1>2D + 3D Chip Editor with Text</h1>
+
+<div class="chips-wrapper">
+  <div class="chip-section" id="front-chip">
+    <div class="chip-title">Front Side</div>
+    <div class="circle-container"><img class="circle-image" src=""></div>
+    <input type="file" class="upload-input" accept="image/*">
+    <p class="instructions">💡 Drag image/text | Scroll to zoom image | Use controls below to customize text</p>
+    <button class="download-btn" disabled>Download Front</button>
+    <div class="text-editor">
+      <textarea class="text-input" placeholder="Enter text (multiple lines supported)" rows="2"></textarea>
+      <select class="font-select">
+        <option value="Arial">Arial</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+      </select>
+      <select class="text-mode">
+        <option value="straight">Straight</option>
+        <option value="curved-upper">Curved Upper</option>
+        <option value="curved-lower">Curved Lower</option>
+      </select>
+      <label>Color: <input type="color" class="text-color" value="#000000"></label>
+      <label>Size: <input type="range" class="text-size" min="12" max="72" value="24" step="1"> <span class="text-size-value">24px</span></label>
+    </div>
+  </div>
+
+  <div class="chip-section" id="back-chip">
+    <div class="chip-title">Back Side</div>
+    <div class="circle-container"><img class="circle-image" src=""></div>
+    <input type="file" class="upload-input" accept="image/*">
+    <p class="instructions">💡 Drag image/text | Scroll to zoom image | Use controls below to customize text</p>
+    <button class="download-btn" disabled>Download Back</button>
+    <div class="text-editor">
+      <textarea class="text-input" placeholder="Enter text (multiple lines supported)" rows="2"></textarea>
+      <select class="font-select">
+        <option value="Arial">Arial</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+      </select>
+      <select class="text-mode">
+        <option value="straight">Straight</option>
+        <option value="curved-upper">Curved Upper</option>
+        <option value="curved-lower">Curved Lower</option>
+      </select>
+      <label>Color: <input type="color" class="text-color" value="#000000"></label>
+      <label>Size: <input type="range" class="text-size" min="12" max="72" value="24" step="1"> <span class="text-size-value">24px</span></label>
+    </div>
+  </div>
+</div>
+
+<button id="generate3d-btn">✨ Generate 3D Preview</button>
+<div class="color-selector">
+  Edge Color: <input type="color" id="edge-color" value="#007bff">
+</div>
+
+<div id="three-container"></div>
+
+<div id="debug-canvases">
+  <div>
+    <div>Front canvas:</div>
+    <img id="debug-front" width="100" height="100">
+  </div>
+  <div>
+    <div>Back canvas:</div>
+    <img id="debug-back" width="100" height="100">
+  </div>
+</div>
+
+<script>
+function setupChipEditor(section) {
+  const container = section.querySelector('.circle-container');
+  const image = section.querySelector('.circle-image');
+  const input = section.querySelector('.upload-input');
+  const downloadBtn = section.querySelector('.download-btn');
+  const textInput = section.querySelector('.text-input');
+  const fontSelect = section.querySelector('.font-select');
+  const textModeSelect = section.querySelector('.text-mode');
+  const textColorInput = section.querySelector('.text-color');
+  const textSizeInput = section.querySelector('.text-size');
+  const textSizeValue = section.querySelector('.text-size-value');
+
+  // Create and append canvas for displaying the composite
+  const canvas = document.createElement('canvas');
+  canvas.className = 'circle-canvas';
+  canvas.width = 300;
+  canvas.height = 300;
+  container.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  let scale = 1, offset={x:0,y:0}, dragging=false, start={x:0,y:0};
+  let originalImage = new Image();
+  let textBox={x:0,y:0,dragging:false,startX:0,startY:0,hovering:false};
+  let lastTouchDist=0;
+
+  input.addEventListener('change', e=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      originalImage.src = reader.result;
+      image.src = reader.result;
+      originalImage.onload = ()=>{ scale=1; offset={x:0,y:0}; updateTransform(); drawCanvas(); downloadBtn.disabled=false; }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function isOverText(mx, my) {
+    const textValue = textInput.value;
+    if(!textValue) return false;
+
+    if(textModeSelect.value === "straight") {
+      // Bounding box check for straight text (multi-line aware)
+      const fontSize = parseInt(textSizeInput.value);
+      const lines = textValue.split('\n');
+      const lineHeight = fontSize * 1.2;
+      const totalHeight = lines.length * lineHeight;
+
+      // Approximate width based on longest line
+      const maxLineLength = Math.max(...lines.map(l => l.length));
+      const approxWidth = maxLineLength * fontSize * 0.6;
+
+      return Math.abs(mx - textBox.x) < approxWidth/2 + 20 &&
+             Math.abs(my - textBox.y) < totalHeight/2 + 10;
+    } else if(textModeSelect.value === "curved-upper") {
+      // For curved upper text, check if in top circular region
+      const dist = Math.sqrt(mx*mx + my*my);
+      return dist < 100 && my < 0; // within top region
+    } else if(textModeSelect.value === "curved-lower") {
+      // For curved lower text, check if in bottom circular region
+      const dist = Math.sqrt(mx*mx + my*my);
+      return dist < 100 && my > 0; // within bottom region
+    }
+    return false;
+  }
+
+  container.addEventListener('mousedown', e=>{
+    const rect = container.getBoundingClientRect();
+    const mx=e.clientX-rect.left-150, my=e.clientY-rect.top-150;
+
+    if(isOverText(mx, my)){
+      textBox.dragging=true; textBox.startX=mx-textBox.x; textBox.startY=my-textBox.y;
+    } else {
+      dragging=true; start={x:e.clientX-offset.x,y:e.clientY-offset.y};
+    }
+  });
+
+  container.addEventListener('mousemove', e=>{
+    const rect = container.getBoundingClientRect();
+    const mx=e.clientX-rect.left-150, my=e.clientY-rect.top-150;
+
+    // Update hover state
+    const wasHovering = textBox.hovering;
+    textBox.hovering = isOverText(mx, my);
+    container.style.cursor = textBox.hovering ? 'move' : 'grab';
+
+    if(textBox.dragging){
+      textBox.x=mx-textBox.startX; textBox.y=my-textBox.startY; drawCanvas();
+    }
+    else if(dragging){
+      offset.x=e.clientX-start.x; offset.y=e.clientY-start.y; updateTransform(); drawCanvas();
+    }
+    else if(wasHovering !== textBox.hovering) {
+      drawCanvas(); // Redraw to show/hide bounding box
+    }
+  });
+
+  window.addEventListener('mouseup', ()=>{ dragging=false; textBox.dragging=false; });
+
+  container.addEventListener('wheel', e=>{
+    e.preventDefault();
+    // Scroll to zoom image
+    const rect=container.getBoundingClientRect();
+    const cx=e.clientX-rect.left-150, cy=e.clientY-rect.top-150;
+    const newScale=Math.min(Math.max(0.2,scale*(1-e.deltaY*0.002)),5);
+    offset.x-=cx*(newScale/scale-1); offset.y-=cy*(newScale/scale-1);
+    scale=newScale;
+    updateTransform();
+    drawCanvas();
+  });
+
+  // Touch support
+  container.addEventListener('touchstart', e=>{
+    if(e.touches.length===1){
+      const rect = container.getBoundingClientRect();
+      const mx=e.touches[0].clientX-rect.left-150, my=e.touches[0].clientY-rect.top-150;
+      if(isOverText(mx, my)){
+        textBox.dragging=true; textBox.startX=mx-textBox.x; textBox.startY=my-textBox.y;
+      } else {
+        dragging=true; start={x:e.touches[0].clientX-offset.x, y:e.touches[0].clientY-offset.y};
+      }
+    }
+    else if(e.touches.length===2){
+      dragging=false; textBox.dragging=false;
+      lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    }
+  });
+
+  container.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    if(e.touches.length===1){
+      const rect = container.getBoundingClientRect();
+      const mx=e.touches[0].clientX-rect.left-150, my=e.touches[0].clientY-rect.top-150;
+      if(textBox.dragging){
+        textBox.x=mx-textBox.startX; textBox.y=my-textBox.startY; drawCanvas();
+      } else if(dragging){
+        offset.x=e.touches[0].clientX-start.x; offset.y=e.touches[0].clientY-start.y; updateTransform(); drawCanvas();
+      }
+    }
+    else if(e.touches.length===2){
+      const newDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      const zoomFactor=newDist/lastTouchDist;
+      scale=Math.min(Math.max(0.2, scale*zoomFactor),5);
+      lastTouchDist=newDist;
+      updateTransform();
+      drawCanvas();
+    }
+  });
+
+  container.addEventListener('touchend', ()=>{ dragging=false; textBox.dragging=false; });
+
+  textInput.addEventListener('input', drawCanvas);
+  fontSelect.addEventListener('change', drawCanvas);
+  textModeSelect.addEventListener('change', drawCanvas);
+  textColorInput.addEventListener('input', drawCanvas);
+  textSizeInput.addEventListener('input', ()=>{
+    textSizeValue.textContent = textSizeInput.value + 'px';
+    drawCanvas();
+  });
+
+  function updateTransform(){
+    image.style.transform=`translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${scale})`;
+  }
+
+  function drawCanvas(){
+    const size=300;
+    ctx.clearRect(0,0,size,size);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(size/2,size/2,size/2,0,Math.PI*2);
+    ctx.closePath();
+    ctx.clip();
+
+    if(originalImage.src){
+      const iw=originalImage.width, ih=originalImage.height;
+      ctx.drawImage(originalImage,(size-iw*scale)/2+offset.x,(size-ih*scale)/2+offset.y,iw*scale,ih*scale);
+    }
+
+    const textValue=textInput.value;
+    if(textValue){
+      const fontFamily=fontSelect.value;
+      const fontSize=parseInt(textSizeInput.value);
+      const textColor=textColorInput.value;
+      ctx.fillStyle=textColor;
+      ctx.strokeStyle="white";
+      ctx.lineWidth=Math.max(2, fontSize/12);
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      ctx.font=`bold ${fontSize}px ${fontFamily}`;
+
+      if(textModeSelect.value==="straight"){
+        const tx = size/2+textBox.x;
+        const ty = size/2+textBox.y;
+
+        // Split text into lines
+        const lines = textValue.split('\n');
+        const lineHeight = fontSize * 1.2; // 1.2x line spacing
+        const totalHeight = lines.length * lineHeight;
+
+        // Calculate max width for bounding box
+        let maxWidth = 0;
+        lines.forEach(line => {
+          const metrics = ctx.measureText(line);
+          if(metrics.width > maxWidth) maxWidth = metrics.width;
+        });
+
+        // Draw bounding box when hovering
+        if(textBox.hovering && !textBox.dragging){
+          const boxWidth = maxWidth + 20;
+          const boxHeight = totalHeight + 10;
+          ctx.save();
+          ctx.strokeStyle="rgba(0, 123, 255, 0.5)";
+          ctx.lineWidth=2;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(tx-boxWidth/2, ty-boxHeight/2, boxWidth, boxHeight);
+          ctx.restore();
+        }
+
+        // Draw each line centered
+        lines.forEach((line, index) => {
+          const lineY = ty - totalHeight/2 + (index + 0.5) * lineHeight;
+          ctx.strokeText(line, tx, lineY);
+          ctx.fillText(line, tx, lineY);
+        });
+      }
+      else if(textModeSelect.value==="curved-upper"){
+        const radius=size/2-40;
+
+        // Calculate total arc length needed based on character widths
+        let totalArcLength = 0;
+        for(let i=0; i<textValue.length; i++){
+          const charWidth = ctx.measureText(textValue[i]).width;
+          totalArcLength += charWidth;
+        }
+
+        // Add spacing between characters (0.3x font size per character)
+        totalArcLength += (textValue.length - 1) * fontSize * 0.3;
+
+        // Calculate angle needed for this arc length
+        // arc length = radius × angle, so angle = arc length / radius
+        let totalAngle = totalArcLength / radius;
+
+        // Cap at 270 degrees (3π/2) to prevent wrapping too far
+        totalAngle = Math.min(totalAngle, Math.PI * 1.5);
+
+        const startAngle = -Math.PI/2 - totalAngle/2; // Center on top
+
+        // Draw arc guide when hovering
+        if(textBox.hovering && !textBox.dragging){
+          ctx.save();
+          ctx.strokeStyle="rgba(0, 123, 255, 0.5)";
+          ctx.lineWidth=2;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.arc(size/2, size/2, radius, startAngle, startAngle + totalAngle);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Position each character based on its actual width
+        let currentAngle = startAngle;
+        for(let i=0; i<textValue.length; i++){
+          const char = textValue[i];
+          const charWidth = ctx.measureText(char).width;
+          const charAngle = charWidth / radius;
+
+          // Place character at center of its allocated arc
+          const angle = currentAngle + charAngle/2;
+
+          ctx.save();
+          ctx.translate(size/2+radius*Math.cos(angle),size/2+radius*Math.sin(angle));
+          ctx.rotate(angle+Math.PI/2);
+          ctx.strokeText(char,0,0);
+          ctx.fillText(char,0,0);
+          ctx.restore();
+
+          // Move to next character position (char width + spacing)
+          currentAngle += charAngle + (fontSize * 0.3) / radius;
+        }
+      }
+      else if(textModeSelect.value==="curved-lower"){
+        const radius=size/2-40;
+
+        // Calculate total arc length needed based on character widths
+        let totalArcLength = 0;
+        for(let i=0; i<textValue.length; i++){
+          const charWidth = ctx.measureText(textValue[i]).width;
+          totalArcLength += charWidth;
+        }
+
+        // Add spacing between characters (0.3x font size per character)
+        totalArcLength += (textValue.length - 1) * fontSize * 0.3;
+
+        // Calculate angle needed for this arc length
+        // arc length = radius × angle, so angle = arc length / radius
+        let totalAngle = totalArcLength / radius;
+
+        // Cap at 270 degrees (3π/2) to prevent wrapping too far
+        totalAngle = Math.min(totalAngle, Math.PI * 1.5);
+
+        const startAngle = Math.PI/2 + totalAngle/2; // Center on bottom, start from right
+
+        // Draw arc guide when hovering
+        if(textBox.hovering && !textBox.dragging){
+          ctx.save();
+          ctx.strokeStyle="rgba(0, 123, 255, 0.5)";
+          ctx.lineWidth=2;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.arc(size/2, size/2, radius, startAngle - totalAngle, startAngle);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Position each character based on its actual width (right to left)
+        let currentAngle = startAngle;
+        for(let i=0; i<textValue.length; i++){
+          const char = textValue[i];
+          const charWidth = ctx.measureText(char).width;
+          const charAngle = charWidth / radius;
+
+          // Place character at center of its allocated arc
+          const angle = currentAngle - charAngle/2;
+
+          ctx.save();
+          ctx.translate(size/2+radius*Math.cos(angle),size/2+radius*Math.sin(angle));
+          ctx.rotate(angle-Math.PI/2); // Subtract PI/2 to keep characters upright
+          ctx.strokeText(char,0,0);
+          ctx.fillText(char,0,0);
+          ctx.restore();
+
+          // Move to next character position (char width + spacing)
+          currentAngle -= charAngle + (fontSize * 0.3) / radius;
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  downloadBtn.addEventListener('click', ()=>{
+    const dataURL = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `chip-${section.id}.png`;
+    link.href = dataURL;
+    link.click();
+  });
+
+  section.getCanvasDataURL = ()=>{
+    if(!originalImage.src && !textInput.value) return null;
+    return canvas.toDataURL('image/png');
+  };
+}
+
+const frontSection=document.getElementById('front-chip');
+const backSection=document.getElementById('back-chip');
+setupChipEditor(frontSection);
+setupChipEditor(backSection);
+</script>
+
+<!-- 3D Preview JS -->
+<script type="module">
+  document.getElementById('generate3d-btn').addEventListener('click', async () => {
+    console.log("🔹 Generate 3D Preview button clicked");
+  
+    const frontURL = frontSection.getCanvasDataURL();
+    const backURL = backSection.getCanvasDataURL();
+  
+    // Debug canvases
+    const debugFront = document.getElementById('debug-front');
+    const debugBack = document.getElementById('debug-back');
+    if(debugFront) debugFront.src = frontURL;
+    if(debugBack) debugBack.src = backURL;
+    console.log("🔹 Debug canvases updated for 3D preview");
+  
+    if(!frontURL || !backURL){
+      alert("Please upload both front and back images");
+      console.log("❌ Missing front or back image");
+      return;
+    }
+  
+    try{
+      console.log("🔹 Loading Three.js modules...");
+      const THREE = await import('https://cdn.skypack.dev/three@0.129.0/build/three.module.js');
+      const { OrbitControls } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/controls/OrbitControls.js');
+      console.log("✅ Three.js and OrbitControls loaded");
+  
+      const container3d = document.getElementById('three-container');
+      container3d.style.display='block';
+      container3d.innerHTML='';
+      console.log("🔹 3D container displayed");
+  
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45,1,0.1,1000);
+      camera.position.set(0,1.5,3);
+  
+      const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+      renderer.setSize(400,400);
+      container3d.appendChild(renderer.domElement);
+      console.log("🔹 Renderer created");
+  
+      // Controls
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enablePan=false;
+      controls.minDistance=2;
+      controls.maxDistance=6;
+  
+      // Track user interaction
+      let userIsInteracting = false;
+      controls.addEventListener('start', ()=>{ userIsInteracting=true; });
+      controls.addEventListener('end', ()=>{ userIsInteracting=false; });
+      console.log("🔹 OrbitControls initialized with auto-rotate support");
+  
+      // Lighting
+      const dirLight = new THREE.DirectionalLight(0xffffff,0.8);
+      dirLight.position.set(5,5,5);
+      scene.add(dirLight);
+  
+      const ambLight = new THREE.AmbientLight(0xffffff,0.4);
+      scene.add(ambLight);
+  
+      const hemiLight = new THREE.HemisphereLight(0xffffff,0x444444,0.3);
+      scene.add(hemiLight);
+      console.log("🔹 Lighting added");
+  
+      const loader = new THREE.TextureLoader();
+      console.log("🔹 Loading front texture...");
+      loader.load(frontURL, frontTex=>{
+        console.log("✅ Front texture loaded");
+        loader.load(backURL, backTex=>{
+          console.log("✅ Back texture loaded");
+  
+          const radius=1;
+          const height=0.07;
+          const sideColor = document.getElementById('edge-color').value;
+  
+          // Create materials
+          const sideMat = new THREE.MeshStandardMaterial({color:sideColor, metalness:0.6, roughness:0.3});
+          const frontMat = new THREE.MeshStandardMaterial({map:frontTex, metalness:0.2, roughness:0.4});
+          const backMat = new THREE.MeshStandardMaterial({map:backTex, metalness:0.2, roughness:0.4});
+          const bevelMat = new THREE.MeshStandardMaterial({color:sideColor, metalness:0.6, roughness:0.3});
+  
+          // Create geometries
+          const cylinderGeom = new THREE.CylinderGeometry(radius,radius,height,64,1,true);
+          const circleGeom = new THREE.CircleGeometry(radius,64);
+          const bevelRadius=0.02;
+  
+          const cylinder = new THREE.Mesh(cylinderGeom, sideMat);
+          const frontMesh = new THREE.Mesh(circleGeom, frontMat);
+          frontMesh.rotation.x=-Math.PI/2;
+          frontMesh.position.y=height/2+0.01;
+  
+          const backMesh = new THREE.Mesh(circleGeom, backMat);
+          backMesh.rotation.x=-Math.PI/2;
+          backMesh.rotation.y=Math.PI;
+          backMesh.position.y=-height/2-0.01;
+  
+          const frontBevel = new THREE.Mesh(new THREE.TorusGeometry(radius-bevelRadius/2, bevelRadius,16,100),bevelMat);
+          frontBevel.rotation.x=Math.PI/2;
+          frontBevel.position.y=height/2+0.01;
+  
+          const backBevel = new THREE.Mesh(new THREE.TorusGeometry(radius-bevelRadius/2, bevelRadius,16,100),bevelMat);
+          backBevel.rotation.x=Math.PI/2;
+          backBevel.position.y=-height/2-0.01;
+  
+          // Group all parts
+          const chipGroup = new THREE.Group();
+          chipGroup.add(cylinder, frontMesh, backMesh, frontBevel, backBevel);
+          scene.add(chipGroup);
+          console.log("✅ Chip group created with all parts");
+
+          // Set initial orientation: front side facing the user
+          chipGroup.rotation.x = Math.PI / 2; // rotates the chip upright
+          chipGroup.rotation.y = 0;           // optional, keeps it centered
+          chipGroup.rotation.z = 0;           // optional
+  
+          // Animate with auto-rotation
+          let rotationSpeed=0.005;
+          function animate(){
+            requestAnimationFrame(animate);
+            if(!userIsInteracting){
+              chipGroup.rotation.z += rotationSpeed;
+            }
+            renderer.render(scene,camera);
+          }
+          animate();
+          console.log("✅ Animation started with auto-rotation");
+  
+          // Live edge color update
+          document.getElementById('edge-color').addEventListener('input',()=>{
+            sideMat.color.set(document.getElementById('edge-color').value);
+            bevelMat.color.set(document.getElementById('edge-color').value);
+            console.log(`🔹 Edge color updated to ${document.getElementById('edge-color').value}`);
+          });
+  
+        },undefined,err=>console.error("❌ Back texture load error:",err));
+      },undefined,err=>console.error("❌ Front texture load error:",err));
+  
+    }catch(err){
+      console.error("❌ Error initializing 3D preview:",err);
+    }
+  });
+  </script>
+  
