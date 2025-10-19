@@ -152,7 +152,7 @@ h1 { margin-bottom:20px; }
 
 <button id="generate3d-btn">✨ Generate 3D Preview</button>
 <div class="color-selector">
-  Edge Color: <input type="color" id="edge-color" value="#007bff">
+  Edge Color: <input type="color" id="edge-color" value="#2d8e3e">
 </div>
 
 <div id="three-container"></div>
@@ -736,28 +736,27 @@ setupChipEditor(backSection);
             const center2 = box2.getCenter(new THREE.Vector3());
             obj.position.sub(center2);
 
-            // Create planes for front and back textures on the inner circle
-            // The inner circle is smaller to fit inside the embossed area
-            const innerCircleRadius = 0.56; // Adjusted to fit completely inside the emboss
-            const circleGeom = new THREE.CircleGeometry(innerCircleRadius, 64);
-
             // Get the actual height of the chip after rotation and scaling
             const chipHeight = size.y * scale;
 
-            const frontTexMesh = new THREE.Mesh(circleGeom, frontMat);
-            frontTexMesh.position.y = chipHeight / 2 + 0.005; // Slightly above the top
-            frontTexMesh.rotation.x = -Math.PI/2;
+            // Create smaller circles for custom user images (center circle only)
+            const innerCircleRadius = 0.56; // Adjusted to fit inside the emboss
+            const innerCircleGeom = new THREE.CircleGeometry(innerCircleRadius, 64);
 
-            const backTexMesh = new THREE.Mesh(circleGeom, backMat);
-            backTexMesh.position.y = -chipHeight / 2 - 0.005; // Slightly below the bottom
-            backTexMesh.rotation.x = -Math.PI/2;
-            backTexMesh.rotation.y = Math.PI;
+            const frontCustomMesh = new THREE.Mesh(innerCircleGeom, frontMat);
+            frontCustomMesh.position.y = chipHeight / 2 + 0.005; // On top of chip face
+            frontCustomMesh.rotation.x = -Math.PI/2;
+
+            const backCustomMesh = new THREE.Mesh(innerCircleGeom, backMat);
+            backCustomMesh.position.y = -chipHeight / 2 - 0.005; // On top of chip face
+            backCustomMesh.rotation.x = -Math.PI/2;
+            backCustomMesh.rotation.y = Math.PI;
 
             // Group all parts
             const chipGroup = new THREE.Group();
-            chipGroup.add(obj, frontTexMesh, backTexMesh);
+            chipGroup.add(obj, frontCustomMesh, backCustomMesh);
             scene.add(chipGroup);
-            console.log("✅ Chip model added to scene with textures");
+            console.log("✅ Chip model added with custom images");
 
             // Set initial orientation: tilt slightly to show front face to user
             chipGroup.rotation.x = Math.PI * 0.15; // Tilt forward 27 degrees to show front
