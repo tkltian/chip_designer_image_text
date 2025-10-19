@@ -647,7 +647,8 @@ setupChipEditor(backSection);
       console.log("🔹 Loading Three.js modules...");
       const THREE = await import('https://cdn.skypack.dev/three@0.129.0/build/three.module.js');
       const { OrbitControls } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/controls/OrbitControls.js');
-      console.log("✅ Three.js and OrbitControls loaded");
+      const { OBJLoader } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/OBJLoader.js');
+      console.log("✅ Three.js, OrbitControls, and OBJLoader loaded");
   
       const container3d = document.getElementById('three-container');
       container3d.style.display='block';
@@ -693,69 +694,95 @@ setupChipEditor(backSection);
         console.log("✅ Front texture loaded");
         loader.load(backURL, backTex=>{
           console.log("✅ Back texture loaded");
-  
-          const radius=1;
-          const height=0.07;
+
           const sideColor = document.getElementById('edge-color').value;
-  
+
           // Create materials
           const sideMat = new THREE.MeshStandardMaterial({color:sideColor, metalness:0.6, roughness:0.3});
           const frontMat = new THREE.MeshStandardMaterial({map:frontTex, metalness:0.2, roughness:0.4});
           const backMat = new THREE.MeshStandardMaterial({map:backTex, metalness:0.2, roughness:0.4});
-          const bevelMat = new THREE.MeshStandardMaterial({color:sideColor, metalness:0.6, roughness:0.3});
-  
-          // Create geometries
-          const cylinderGeom = new THREE.CylinderGeometry(radius,radius,height,64,1,true);
-          const circleGeom = new THREE.CircleGeometry(radius,64);
-          const bevelRadius=0.02;
-  
-          const cylinder = new THREE.Mesh(cylinderGeom, sideMat);
-          const frontMesh = new THREE.Mesh(circleGeom, frontMat);
-          frontMesh.rotation.x=-Math.PI/2;
-          frontMesh.position.y=height/2+0.01;
-  
-          const backMesh = new THREE.Mesh(circleGeom, backMat);
-          backMesh.rotation.x=-Math.PI/2;
-          backMesh.rotation.y=Math.PI;
-          backMesh.position.y=-height/2-0.01;
-  
-          const frontBevel = new THREE.Mesh(new THREE.TorusGeometry(radius-bevelRadius/2, bevelRadius,16,100),bevelMat);
-          frontBevel.rotation.x=Math.PI/2;
-          frontBevel.position.y=height/2+0.01;
-  
-          const backBevel = new THREE.Mesh(new THREE.TorusGeometry(radius-bevelRadius/2, bevelRadius,16,100),bevelMat);
-          backBevel.rotation.x=Math.PI/2;
-          backBevel.position.y=-height/2-0.01;
-  
-          // Group all parts
-          const chipGroup = new THREE.Group();
-          chipGroup.add(cylinder, frontMesh, backMesh, frontBevel, backBevel);
-          scene.add(chipGroup);
-          console.log("✅ Chip group created with all parts");
 
-          // Set initial orientation: front side facing the user
-          chipGroup.rotation.x = Math.PI / 2; // rotates the chip upright
-          chipGroup.rotation.y = 0;           // optional, keeps it centered
-          chipGroup.rotation.z = 0;           // optional
-  
-          // Animate with auto-rotation
-          let rotationSpeed=0.005;
-          function animate(){
-            requestAnimationFrame(animate);
-            if(!userIsInteracting){
-              chipGroup.rotation.z += rotationSpeed;
+          // Load OBJ model
+          const objLoader = new OBJLoader();
+          console.log("🔹 Loading OBJ model...");
+          objLoader.load('Chip_model.obj', (obj)=>{
+            console.log("✅ OBJ model loaded");
+
+            // Rotate the OBJ model so that its z-axis becomes the y-axis
+            // This means rotating 90 degrees around the x-axis
+            obj.rotation.x = Math.PI / 2;
+
+            // Apply materials to the model
+            obj.traverse((child)=>{
+              if(child.isMesh){
+                child.material = sideMat;
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            // Normalize the model size and position AFTER rotation
+            const box = new THREE.Box3().setFromObject(obj);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+
+            // Scale to fit approximately 2 units diameter
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 2 / maxDim;
+            obj.scale.set(scale, scale, scale);
+
+            // Recalculate after scaling
+            const box2 = new THREE.Box3().setFromObject(obj);
+            const center2 = box2.getCenter(new THREE.Vector3());
+            obj.position.sub(center2);
+
+            // Create planes for front and back textures on the inner circle
+            // The inner circle is smaller to fit inside the embossed area
+            const innerCircleRadius = 0.56; // Adjusted to fit completely inside the emboss
+            const circleGeom = new THREE.CircleGeometry(innerCircleRadius, 64);
+
+            // Get the actual height of the chip after rotation and scaling
+            const chipHeight = size.y * scale;
+
+            const frontTexMesh = new THREE.Mesh(circleGeom, frontMat);
+            frontTexMesh.position.y = chipHeight / 2 + 0.005; // Slightly above the top
+            frontTexMesh.rotation.x = -Math.PI/2;
+
+            const backTexMesh = new THREE.Mesh(circleGeom, backMat);
+            backTexMesh.position.y = -chipHeight / 2 - 0.005; // Slightly below the bottom
+            backTexMesh.rotation.x = -Math.PI/2;
+            backTexMesh.rotation.y = Math.PI;
+
+            // Group all parts
+            const chipGroup = new THREE.Group();
+            chipGroup.add(obj, frontTexMesh, backTexMesh);
+            scene.add(chipGroup);
+            console.log("✅ Chip model added to scene with textures");
+
+            // Set initial orientation: tilt slightly to show front face to user
+            chipGroup.rotation.x = Math.PI * 0.15; // Tilt forward 27 degrees to show front
+            chipGroup.rotation.y = 0;
+            chipGroup.rotation.z = 0;
+
+            // Animate with auto-rotation
+            let rotationSpeed=0.005;
+            function animate(){
+              requestAnimationFrame(animate);
+              if(!userIsInteracting){
+                chipGroup.rotation.z += rotationSpeed;
+              }
+              renderer.render(scene,camera);
             }
-            renderer.render(scene,camera);
-          }
-          animate();
-          console.log("✅ Animation started with auto-rotation");
-  
-          // Live edge color update
-          document.getElementById('edge-color').addEventListener('input',()=>{
-            sideMat.color.set(document.getElementById('edge-color').value);
-            bevelMat.color.set(document.getElementById('edge-color').value);
-            console.log(`🔹 Edge color updated to ${document.getElementById('edge-color').value}`);
-          });
+            animate();
+            console.log("✅ Animation started with auto-rotation");
+
+            // Live edge color update
+            document.getElementById('edge-color').addEventListener('input',()=>{
+              sideMat.color.set(document.getElementById('edge-color').value);
+              console.log(`🔹 Edge color updated to ${document.getElementById('edge-color').value}`);
+            });
+
+          }, undefined, err=>console.error("❌ OBJ model load error:",err));
   
         },undefined,err=>console.error("❌ Back texture load error:",err));
       },undefined,err=>console.error("❌ Front texture load error:",err));
