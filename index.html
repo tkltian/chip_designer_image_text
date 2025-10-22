@@ -805,8 +805,8 @@ backValueButtons.forEach(btn => {
 
           // Load GLB model
           const gltfLoader = new GLTFLoader();
-          // Use ./ prefix for GitHub Pages compatibility
-          const modelPath = './chip_3d_model/_model2.glb';
+          // Removed underscore prefix - GitHub Pages/Jekyll ignores files starting with _
+          const modelPath = './chip_3d_model/model2.glb';
           console.log("🔹 Loading GLB from:", modelPath);
           gltfLoader.load(modelPath, (gltf)=>{
             console.log("✅ GLB model loaded", gltf);
