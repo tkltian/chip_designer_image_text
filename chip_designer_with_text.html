@@ -839,13 +839,69 @@ backValueButtons.forEach(btn => {
           const frontMat = new THREE.MeshStandardMaterial({map:frontTex, metalness:0.2, roughness:0.4});
           const backMat = new THREE.MeshStandardMaterial({map:backTex, metalness:0.2, roughness:0.4});
 
-          // Load GLB model
+          // Function to create fallback simple chip geometry
+          function createFallbackChip() {
+            showStatus("Using simplified 3D chip model for mobile...");
+            console.log("🔹 Creating fallback cylinder chip");
+
+            const chipGroup = new THREE.Group();
+
+            // Create simple cylinder for chip body
+            const cylinderGeom = new THREE.CylinderGeometry(1, 1, 0.2, 64);
+            const chipMaterial = new THREE.MeshStandardMaterial({
+              color: 0xeeeeee,
+              metalness: 0.3,
+              roughness: 0.5
+            });
+            const cylinder = new THREE.Mesh(cylinderGeom, chipMaterial);
+            chipGroup.add(cylinder);
+
+            // Create circles for custom images
+            const innerCircleRadius = 0.95;
+            const innerCircleGeom = new THREE.CircleGeometry(innerCircleRadius, 64);
+
+            const frontCustomMesh = new THREE.Mesh(innerCircleGeom, frontMat);
+            frontCustomMesh.position.y = 0.101;
+            frontCustomMesh.rotation.x = -Math.PI/2;
+
+            const backCustomMesh = new THREE.Mesh(innerCircleGeom, backMat);
+            backCustomMesh.position.y = -0.101;
+            backCustomMesh.rotation.x = Math.PI/2;
+
+            chipGroup.add(frontCustomMesh, backCustomMesh);
+            scene.add(chipGroup);
+
+            // Set initial orientation
+            chipGroup.rotation.x = Math.PI * 0.15;
+            chipGroup.rotation.y = 0;
+            chipGroup.rotation.z = 0;
+
+            // Animate
+            let rotationSpeed=0.005;
+            function animate(){
+              requestAnimationFrame(animate);
+              if(!userIsInteracting){
+                chipGroup.rotation.z += rotationSpeed;
+              }
+              renderer.render(scene,camera);
+            }
+            animate();
+            showStatus("3D preview ready! ✓ (simplified for mobile)");
+            console.log("✅ Fallback chip animation started");
+          }
+
+          // Load GLB model with fallback
           const gltfLoader = new GLTFLoader();
           showStatus("Loading 3D chip model...");
           console.log("🔹 Starting GLB model load...");
 
+          // Use relative path - works better with GitHub Pages
+          const modelPath = './chip_3d_model/_model2.glb';
+          console.log("🔹 Model path:", modelPath);
+          console.log("🔹 Current location:", window.location.href);
+
           gltfLoader.load(
-            'chip_3d_model/_model2.glb',
+            modelPath,
             // Success callback
             (gltf)=>{
               console.log("✅ GLB model loaded successfully", gltf);
@@ -927,11 +983,26 @@ backValueButtons.forEach(btn => {
               showStatus(`Loading 3D model: ${percentComplete}%`);
             }
           },
-          // Error callback
+          // Error callback - use fallback cylinder chip
           (err)=>{
             console.error("❌ GLB model load error:", err);
-            showStatus(`Failed to load 3D model: ${err.message || err}`, true);
-            alert("Failed to load 3D model. This may be due to file size or browser compatibility. Please try on desktop or refresh the page.");
+            console.log("❌ Error type:", typeof err);
+            console.log("❌ Error constructor:", err?.constructor?.name);
+
+            // Log detailed error info
+            if (err instanceof ErrorEvent) {
+              console.error("❌ ErrorEvent:", err.message);
+              showStatus(`GLB load failed: ${err.message}. Using simplified chip...`);
+            } else if (err instanceof ProgressEvent) {
+              console.error("❌ ProgressEvent - likely network/CORS issue");
+              showStatus("Network error loading GLB. Using simplified chip...");
+            } else {
+              console.error("❌ Unknown error:", err);
+              showStatus("Error loading 3D model. Using simplified chip...");
+            }
+
+            console.log("🔹 Switching to fallback cylinder chip for mobile compatibility");
+            createFallbackChip();
           });
 
         },undefined,err=>{
