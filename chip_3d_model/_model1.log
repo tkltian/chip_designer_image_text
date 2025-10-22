@@ -1,0 +1,116 @@
+﻿INFO-
+INFO-		Unigraphics Version NX V1926 to AutoCAD 2004
+INFO-		
+INFO-
+INFO-		Running UGTODWG Translator .....
+INFO-
+INFO-		Start of Translation: Mon Oct 20 21:53:00 2025
+INFO-
+STATUS-		Converting C:\Users\张志豪\Desktop\_model1.prt
+STATUS-
+----------------------------------------------------------------------------
+SUMMARY-                     Warnings
+----------------------------------------------------------------------------
+1. Font file <txt.shx> not found.
+   For text translation improvement, set environment variable DXFDWG_FONTS_DIR to directory contaning font files
+   OR place this font file at location pointed to by DXFDWG_DIR.
+-------------------------------End------------------------------------------
+
+SUMMARY-
+SUMMARY-	Summary of Unigraphics Input Entities
+SUMMARY-	For Unigraphics File: C:\Users\张志豪\Desktop\_model1.prt
+SUMMARY-	------------------------------------------------------------------
+SUMMARY-	Entity Type					Count
+SUMMARY-	------------------------------------------------------------------
+SUMMARY-	Line .....................................:	830
+SUMMARY-	Point ....................................:	18
+SUMMARY-	Arc ......................................:	888
+SUMMARY-	Circle ...................................:	20
+SUMMARY-	Spline ...................................:	256
+SUMMARY-	Solid Edges............................:	1316
+SUMMARY-	Image ....................................:	1
+SUMMARY-	------------------------------------------------------------------
+SUMMARY-	Total ....................................:	3329
+SUMMARY-	------------------------------------------------------------------
+SUMMARY-
+STATUS-
+INFO-
+INFO-		Writing File: C:\Users\张志豪\Desktop\新建文件夹 (3)\_model1.dwg
+SUMMARY-	Summary of AutoCAD Output Entities
+SUMMARY-	------------------------------------------------------------------
+SUMMARY-	Entity Type					Count
+SUMMARY-	------------------------------------------------------------------
+SUMMARY-	Arc ......................................:	888
+SUMMARY-	Circle ...................................:	20
+SUMMARY-	Spline ...................................:	256
+SUMMARY-	Point ....................................:	18
+SUMMARY-	Line .....................................:	830
+SUMMARY-	Layout ...................................:	6
+SUMMARY-	Image ...................................:	1
+SUMMARY-	------------------------------------------------------------------
+SUMMARY-	Total ....................................:	2019
+SUMMARY-	------------------------------------------------------------------
+SUMMARY-
+INFO-
+INFO-		End of Translation: Mon Oct 20 21:53:01 2025
+INFO-		Translation CPU time: 0 m, 1 sINFO-
+UG to IGES
+! INFO-     NX V1926 / IGES Specification 5.3
+! INFO-      
+! INFO-     Start of Translation: 20-OCT-2025  9:54:17 PM
+! INFO-      
+! STATUS-   Converting Part: C:\Users\张志豪\Desktop\_model1.prt
+! SUMMARY-   
+! SUMMARY-  Summary of Unigraphics Input Entities
+! SUMMARY-  For Part: C:\Users\张志豪\Desktop\_model1.prt 
+! SUMMARY-  Entities Processed             Count
+! SUMMARY-  ------------------             -----
+! SUMMARY-  Point .......................:    18
+! SUMMARY-  Line ........................:  1270
+! SUMMARY-  Arc/Circle ..................:  1616
+! SUMMARY-  B-Curve .....................:  3136
+! SUMMARY-  Part Attribute ..............:     1
+! SUMMARY-  Layer Category ..............:    27
+! SUMMARY-  Font ........................:     1
+! SUMMARY-  Color Table .................:     2
+! SUMMARY-  Coordinate System ...........:     3
+! SUMMARY-  Parameter ...................:     2
+! SUMMARY-  Matrix ......................:    21
+! SUMMARY-  View ........................:     8
+! SUMMARY-  Layout ......................:     5
+! SUMMARY-  Solid .......................:
+! SUMMARY-     Face .....................:   506
+! SUMMARY-  Trim Curve ..................:   592
+! SUMMARY-                                 -----
+! SUMMARY-  Total                           7208
+! STATUS-    
+! STATUS-   Converting to Output Form (Phase 2 of 3): 20-OCT-2025 9:54:19 PM
+! STATUS-    
+! STATUS-   Creating the IGES file (Phase 3 of 3): 20-OCT-2025  9:54:19 PM
+! SUMMARY-   
+! SUMMARY-  Summary of IGES Output Entities
+! SUMMARY-   
+! SUMMARY-  Entities Processed             Count
+! SUMMARY-  ------------------             -----
+! SUMMARY-  Point ........................    18
+! SUMMARY-  Arc ..........................  1616
+! SUMMARY-  Line .........................  1270
+! SUMMARY-  BSpline Curve ................  3136
+! SUMMARY-  Composite Curve ..............   956
+! SUMMARY-  Curve on Surface .............   592
+! SUMMARY-  Plane ........................
+! SUMMARY-      Unbounded ................    32
+! SUMMARY-  Trimmed Surface ..............   506
+! SUMMARY-  BSpline Surface ..............   506
+! SUMMARY-  Color ........................     5
+! SUMMARY-  Name .........................   650
+! SUMMARY-  Transformation ...............    21
+! SUMMARY-  Definition Levels ............    14
+! SUMMARY-  Level Function ...............    26
+! SUMMARY-  View .........................     8
+! SUMMARY-                                 -----
+! SUMMARY-  Total                           9356
+! WARNING-  Convergent/Facet bodies are not processed.
+! INFO-      
+! INFO-     End of Translation: 20-OCT-2025  9:54:20 PM
+! INFO-      

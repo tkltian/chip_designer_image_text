@@ -40,11 +40,18 @@ h1 { margin-bottom:20px; }
 .text-editor .range-control { display:flex; align-items:center; gap:5px; }
 .text-editor .range-value { min-width:35px; font-size:12px; color:#666; }
 .circle-canvas { position:absolute; top:0; left:0; width:100%; height:100%; user-select:none; pointer-events:none; }
+.privacy-notice { max-width:700px; margin:0 auto 20px; padding:12px 20px; background:#e8f5e9; border-left:4px solid #4caf50; border-radius:4px; font-size:13px; color:#2e7d32; }
+.privacy-notice strong { color:#1b5e20; }
 </style>
 </head>
 <body>
 
-<h1>2D + 3D Chip Editor with Text</h1>
+<h1>LT Innovations Shop</h1>
+<h2 style="margin-top:-10px; margin-bottom:20px; font-size:18px; color:#666; font-weight:normal;">2D + 3D Chip Design Preview</h2>
+
+<div class="privacy-notice">
+  <strong>🔒 Privacy & Security:</strong> This is a static website that runs entirely in your browser. All images and designs you upload are processed locally on your device. No data is uploaded, shared, or stored on any server. Your privacy is fully protected.
+</div>
 
 <div class="chips-wrapper">
   <div class="chip-section" id="front-chip">
@@ -162,9 +169,6 @@ h1 { margin-bottom:20px; }
 <p style="margin-top:8px; font-size:13px; color:#666; max-width:500px; text-align:center; font-style:italic;">
   The 3D preview is for reference only; the actual effect will depend on which chip style you choose, and what color that chip style is available with.
 </p>
-<div class="color-selector">
-  Chip Color: <input type="color" id="edge-color" value="#2d8e3e">
-</div>
 
 <div id="three-container"></div>
 
@@ -658,8 +662,8 @@ setupChipEditor(backSection);
       console.log("🔹 Loading Three.js modules...");
       const THREE = await import('https://cdn.skypack.dev/three@0.129.0/build/three.module.js');
       const { OrbitControls } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/controls/OrbitControls.js');
-      const { OBJLoader } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/OBJLoader.js');
-      console.log("✅ Three.js, OrbitControls, and OBJLoader loaded");
+      const { GLTFLoader } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/GLTFLoader.js');
+      console.log("✅ Three.js, OrbitControls, and GLTFLoader loaded");
   
       const container3d = document.getElementById('three-container');
       container3d.style.display='block';
@@ -706,27 +710,21 @@ setupChipEditor(backSection);
         loader.load(backURL, backTex=>{
           console.log("✅ Back texture loaded");
 
-          const sideColor = document.getElementById('edge-color').value;
-
-          // Create materials
-          const sideMat = new THREE.MeshStandardMaterial({color:sideColor, metalness:0.6, roughness:0.3});
           const frontMat = new THREE.MeshStandardMaterial({map:frontTex, metalness:0.2, roughness:0.4});
           const backMat = new THREE.MeshStandardMaterial({map:backTex, metalness:0.2, roughness:0.4});
 
-          // Load OBJ model
-          const objLoader = new OBJLoader();
-          console.log("🔹 Loading OBJ model...");
-          objLoader.load('Chip_model.obj', (obj)=>{
-            console.log("✅ OBJ model loaded");
+          // Load GLB model
+          const gltfLoader = new GLTFLoader();
+          gltfLoader.load('chip_3d_model/_model2.glb', (gltf)=>{
+            console.log("✅ GLB model loaded", gltf);
+            const obj = gltf.scene;
 
-            // Rotate the OBJ model so that its z-axis becomes the y-axis
-            // This means rotating 90 degrees around the x-axis
+            // Rotate the model so that its z-axis becomes the y-axis
             obj.rotation.x = Math.PI / 2;
 
-            // Apply materials to the model
+            // Keep original materials from GLB, just enable shadows
             obj.traverse((child)=>{
               if(child.isMesh){
-                child.material = sideMat;
                 child.castShadow = true;
                 child.receiveShadow = true;
               }
@@ -751,7 +749,7 @@ setupChipEditor(backSection);
             const chipHeight = size.y * scale;
 
             // Create smaller circles for custom user images (center circle only)
-            const innerCircleRadius = 0.56; // Adjusted to fit inside the emboss
+            const innerCircleRadius = 0.57; // Adjusted to fill the embossed area
             const innerCircleGeom = new THREE.CircleGeometry(innerCircleRadius, 64);
 
             const frontCustomMesh = new THREE.Mesh(innerCircleGeom, frontMat);
@@ -786,13 +784,7 @@ setupChipEditor(backSection);
             animate();
             console.log("✅ Animation started with auto-rotation");
 
-            // Live edge color update
-            document.getElementById('edge-color').addEventListener('input',()=>{
-              sideMat.color.set(document.getElementById('edge-color').value);
-              console.log(`🔹 Edge color updated to ${document.getElementById('edge-color').value}`);
-            });
-
-          }, undefined, err=>console.error("❌ OBJ model load error:",err));
+          }, undefined, err=>console.error("❌ GLB model load error:",err));
   
         },undefined,err=>console.error("❌ Back texture load error:",err));
       },undefined,err=>console.error("❌ Front texture load error:",err));
