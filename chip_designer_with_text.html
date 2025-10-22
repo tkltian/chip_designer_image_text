@@ -42,6 +42,10 @@ h1 { margin-bottom:20px; }
 .circle-canvas { position:absolute; top:0; left:0; width:100%; height:100%; user-select:none; pointer-events:none; }
 .privacy-notice { max-width:700px; margin:0 auto 20px; padding:12px 20px; background:#e8f5e9; border-left:4px solid #4caf50; border-radius:4px; font-size:13px; color:#2e7d32; }
 .privacy-notice strong { color:#1b5e20; }
+.casino-values { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+.casino-value-btn { padding:8px 16px; background:#f0f0f0; border:2px solid #ddd; border-radius:4px; cursor:pointer; font-weight:bold; transition:all 0.2s; }
+.casino-value-btn:hover { background:#e0e0e0; transform:scale(1.05); }
+.casino-value-btn.active { background:#4caf50; color:white; border-color:#4caf50; }
 </style>
 </head>
 <body>
@@ -113,6 +117,14 @@ h1 { margin-bottom:20px; }
     <div class="chip-title">Back Side</div>
     <div class="circle-container"><img class="circle-image" src=""></div>
     <input type="file" class="upload-input" accept="image/*">
+    <div class="casino-values">
+      <small style="width:100%; text-align:center; color:#666; margin-bottom:-4px;">Or use generic casino chip value:</small>
+      <button class="casino-value-btn" data-value="1">$1</button>
+      <button class="casino-value-btn" data-value="5">$5</button>
+      <button class="casino-value-btn" data-value="10">$10</button>
+      <button class="casino-value-btn" data-value="25">$25</button>
+      <button class="casino-value-btn" data-value="100">$100</button>
+    </div>
     <p class="instructions">💡 Drag image/text | Scroll to zoom image | Use controls below to customize text</p>
     <button class="download-btn" disabled>Download Back</button>
     <div class="text-editor">
@@ -629,55 +641,167 @@ function setupChipEditor(section) {
     if(!originalImage.src && !textInput.value) return null;
     return canvas.toDataURL('image/png');
   };
+
+  // Expose a method to programmatically load an image
+  section.loadImageFromDataURL = (dataURL)=>{
+    originalImage.src = dataURL;
+    image.src = dataURL;
+    originalImage.onload = ()=>{
+      scale=1;
+      offset={x:0,y:0};
+      updateTransform();
+      drawCanvas();
+      downloadBtn.disabled=false;
+    }
+  };
 }
 
 const frontSection=document.getElementById('front-chip');
 const backSection=document.getElementById('back-chip');
 setupChipEditor(frontSection);
 setupChipEditor(backSection);
+
+// Generate generic casino chip value images
+function generateCasinoChipImage(value){
+  const canvas = document.createElement('canvas');
+  canvas.width = 600;
+  canvas.height = 600;
+  const ctx = canvas.getContext('2d');
+
+  // Use artistic serif font with elegant styling
+  // No background - transparent, just the number artistically rendered
+
+  // Color scheme for text based on value (for visual variety)
+  const colors = {
+    1: '#1a1a1a',    // Dark gray
+    5: '#8b0000',    // Dark red
+    10: '#00008b',   // Dark blue
+    25: '#006400',   // Dark green
+    100: '#000000'   // Black
+  };
+
+  const textColor = colors[value] || '#1a1a1a';
+
+  // Draw only one number in center with artistic font
+  // Scale down font size for 100 to fit in circle
+  const fontSize = value == 100 ? 150 : 180;
+
+  ctx.fillStyle = textColor;
+  ctx.font = `italic bold ${fontSize}px Georgia, serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Add subtle shadow for depth
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetX = 3;
+  ctx.shadowOffsetY = 3;
+
+  ctx.fillText(value, 300, 300);
+
+  return canvas.toDataURL('image/png');
+}
+
+// Add event listeners for casino value buttons (back side only)
+backSection.loadCasinoValue = function(value){
+  const chipImageData = generateCasinoChipImage(value);
+
+  // Use the exposed loadImageFromDataURL method
+  this.loadImageFromDataURL(chipImageData);
+
+  console.log(`✅ Casino chip value $${value} loaded for back side`);
+};
+
+const backValueButtons = backSection.querySelectorAll('.casino-value-btn');
+backValueButtons.forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    const value = btn.getAttribute('data-value');
+    backSection.loadCasinoValue(value);
+
+    // Update button states
+    backValueButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
 </script>
 
 <!-- 3D Preview JS -->
 <script type="module">
+  // Helper function to show status messages (visible on mobile)
+  function showStatus(message, isError = false) {
+    console.log(isError ? `❌ ${message}` : `🔹 ${message}`);
+    const container3d = document.getElementById('three-container');
+    if (!container3d) return;
+
+    const statusDiv = document.createElement('div');
+    statusDiv.style.cssText = `
+      padding: 10px;
+      margin: 10px 0;
+      background: ${isError ? '#ffebee' : '#e3f2fd'};
+      border: 2px solid ${isError ? '#f44336' : '#2196f3'};
+      border-radius: 4px;
+      font-size: 14px;
+      color: ${isError ? '#c62828' : '#1565c0'};
+    `;
+    statusDiv.textContent = message;
+    container3d.appendChild(statusDiv);
+  }
+
   document.getElementById('generate3d-btn').addEventListener('click', async () => {
     console.log("🔹 Generate 3D Preview button clicked");
-  
+
     const frontURL = frontSection.getCanvasDataURL();
     const backURL = backSection.getCanvasDataURL();
-  
+
     // Debug canvases
     const debugFront = document.getElementById('debug-front');
     const debugBack = document.getElementById('debug-back');
     if(debugFront) debugFront.src = frontURL;
     if(debugBack) debugBack.src = backURL;
     console.log("🔹 Debug canvases updated for 3D preview");
-  
+
     if(!frontURL || !backURL){
       alert("Please upload both front and back images");
       console.log("❌ Missing front or back image");
       return;
     }
-  
+
     try{
+      const container3d = document.getElementById('three-container');
+      container3d.style.display='block';
+      container3d.innerHTML='';
+
+      showStatus("Loading 3D engine...");
       console.log("🔹 Loading Three.js modules...");
       const THREE = await import('https://cdn.skypack.dev/three@0.129.0/build/three.module.js');
       const { OrbitControls } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/controls/OrbitControls.js');
       const { GLTFLoader } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/GLTFLoader.js');
+      showStatus("3D engine loaded ✓");
       console.log("✅ Three.js, OrbitControls, and GLTFLoader loaded");
-  
-      const container3d = document.getElementById('three-container');
-      container3d.style.display='block';
-      container3d.innerHTML='';
+
       console.log("🔹 3D container displayed");
   
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(45,1,0.1,1000);
       camera.position.set(0,1.5,3);
-  
-      const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+
+      // Create renderer with mobile-friendly settings
+      let rendererOptions = {antialias:true, alpha:true};
+
+      // For mobile devices, reduce quality if needed
+      if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
+        console.log("🔹 Mobile device detected, optimizing renderer settings");
+        rendererOptions.powerPreference = 'high-performance';
+      }
+
+      const renderer = new THREE.WebGLRenderer(rendererOptions);
       renderer.setSize(400,400);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio on mobile
       container3d.appendChild(renderer.domElement);
-      console.log("🔹 Renderer created");
+      console.log("🔹 Renderer created", {
+        webglVersion: renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL1',
+        maxTextureSize: renderer.capabilities.maxTextureSize
+      });
   
       // Controls
       const controls = new OrbitControls(camera, renderer.domElement);
@@ -704,20 +828,29 @@ setupChipEditor(backSection);
       console.log("🔹 Lighting added");
   
       const loader = new THREE.TextureLoader();
+      showStatus("Loading textures...");
       console.log("🔹 Loading front texture...");
       loader.load(frontURL, frontTex=>{
         console.log("✅ Front texture loaded");
         loader.load(backURL, backTex=>{
           console.log("✅ Back texture loaded");
+          showStatus("Textures loaded ✓");
 
           const frontMat = new THREE.MeshStandardMaterial({map:frontTex, metalness:0.2, roughness:0.4});
           const backMat = new THREE.MeshStandardMaterial({map:backTex, metalness:0.2, roughness:0.4});
 
           // Load GLB model
           const gltfLoader = new GLTFLoader();
-          gltfLoader.load('chip_3d_model/_model2.glb', (gltf)=>{
-            console.log("✅ GLB model loaded", gltf);
-            const obj = gltf.scene;
+          showStatus("Loading 3D chip model...");
+          console.log("🔹 Starting GLB model load...");
+
+          gltfLoader.load(
+            'chip_3d_model/_model2.glb',
+            // Success callback
+            (gltf)=>{
+              console.log("✅ GLB model loaded successfully", gltf);
+              showStatus("3D model loaded ✓");
+              const obj = gltf.scene;
 
             // Rotate the model so that its z-axis becomes the y-axis
             obj.rotation.x = Math.PI / 2;
@@ -782,15 +915,37 @@ setupChipEditor(backSection);
               renderer.render(scene,camera);
             }
             animate();
+            showStatus("3D preview ready! ✓");
             console.log("✅ Animation started with auto-rotation");
 
-          }, undefined, err=>console.error("❌ GLB model load error:",err));
-  
-        },undefined,err=>console.error("❌ Back texture load error:",err));
-      },undefined,err=>console.error("❌ Front texture load error:",err));
-  
+          },
+          // Progress callback
+          (xhr)=>{
+            const percentComplete = xhr.total > 0 ? (xhr.loaded / xhr.total * 100).toFixed(2) : 'unknown';
+            console.log(`📦 GLB loading progress: ${percentComplete}% (${xhr.loaded} / ${xhr.total} bytes)`);
+            if (xhr.total > 0) {
+              showStatus(`Loading 3D model: ${percentComplete}%`);
+            }
+          },
+          // Error callback
+          (err)=>{
+            console.error("❌ GLB model load error:", err);
+            showStatus(`Failed to load 3D model: ${err.message || err}`, true);
+            alert("Failed to load 3D model. This may be due to file size or browser compatibility. Please try on desktop or refresh the page.");
+          });
+
+        },undefined,err=>{
+          console.error("❌ Back texture load error:",err);
+          showStatus(`Failed to load back texture: ${err.message || err}`, true);
+        });
+      },undefined,err=>{
+        console.error("❌ Front texture load error:",err);
+        showStatus(`Failed to load front texture: ${err.message || err}`, true);
+      });
+
     }catch(err){
       console.error("❌ Error initializing 3D preview:",err);
+      showStatus(`Error: ${err.message || err}`, true);
     }
   });
   </script>
