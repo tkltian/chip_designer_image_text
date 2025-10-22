@@ -805,7 +805,10 @@ backValueButtons.forEach(btn => {
 
           // Load GLB model
           const gltfLoader = new GLTFLoader();
-          gltfLoader.load('chip_3d_model/_model2.glb', (gltf)=>{
+          // Use ./ prefix for GitHub Pages compatibility
+          const modelPath = './chip_3d_model/_model2.glb';
+          console.log("🔹 Loading GLB from:", modelPath);
+          gltfLoader.load(modelPath, (gltf)=>{
             console.log("✅ GLB model loaded", gltf);
             const obj = gltf.scene;
 
@@ -874,7 +877,15 @@ backValueButtons.forEach(btn => {
             animate();
             console.log("✅ Animation started with auto-rotation");
 
-          }, undefined, err=>console.error("❌ GLB model load error:",err));
+          }, undefined, err=>{
+            console.error("❌ GLB model load error:",err);
+            console.error("❌ Error details:", {
+              message: err?.message,
+              type: err?.constructor?.name,
+              stack: err?.stack
+            });
+            alert("Failed to load 3D model. Check browser console for details.");
+          });
 
         },undefined,err=>console.error("❌ Back texture load error:",err));
       },undefined,err=>console.error("❌ Front texture load error:",err));
