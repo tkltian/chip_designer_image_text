@@ -181,6 +181,9 @@ h1 { margin-bottom:20px; }
 <p style="margin-top:8px; font-size:13px; color:#666; max-width:500px; text-align:center; font-style:italic;">
   The 3D preview is for reference only; the actual effect will depend on which chip style you choose, and what color that chip style is available with.
 </p>
+<p style="margin-top:4px; font-size:13px; color:#ff6b6b; max-width:500px; text-align:center; font-style:italic;">
+  Note: 3D preview may not display properly on mobile browsers. For best results, please use a desktop or laptop browser.
+</p>
 
 <div id="three-container"></div>
 
@@ -727,26 +730,6 @@ backValueButtons.forEach(btn => {
 
 <!-- 3D Preview JS -->
 <script type="module">
-  // Helper function to show status messages (visible on mobile)
-  function showStatus(message, isError = false) {
-    console.log(isError ? `❌ ${message}` : `🔹 ${message}`);
-    const container3d = document.getElementById('three-container');
-    if (!container3d) return;
-
-    const statusDiv = document.createElement('div');
-    statusDiv.style.cssText = `
-      padding: 10px;
-      margin: 10px 0;
-      background: ${isError ? '#ffebee' : '#e3f2fd'};
-      border: 2px solid ${isError ? '#f44336' : '#2196f3'};
-      border-radius: 4px;
-      font-size: 14px;
-      color: ${isError ? '#c62828' : '#1565c0'};
-    `;
-    statusDiv.textContent = message;
-    container3d.appendChild(statusDiv);
-  }
-
   document.getElementById('generate3d-btn').addEventListener('click', async () => {
     console.log("🔹 Generate 3D Preview button clicked");
 
@@ -767,41 +750,24 @@ backValueButtons.forEach(btn => {
     }
 
     try{
-      const container3d = document.getElementById('three-container');
-      container3d.style.display='block';
-      container3d.innerHTML='';
-
-      showStatus("Loading 3D engine...");
       console.log("🔹 Loading Three.js modules...");
       const THREE = await import('https://cdn.skypack.dev/three@0.129.0/build/three.module.js');
       const { OrbitControls } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/controls/OrbitControls.js');
       const { GLTFLoader } = await import('https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/GLTFLoader.js');
-      showStatus("3D engine loaded ✓");
       console.log("✅ Three.js, OrbitControls, and GLTFLoader loaded");
 
+      const container3d = document.getElementById('three-container');
+      container3d.style.display='block';
+      container3d.innerHTML='';
       console.log("🔹 3D container displayed");
   
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(45,1,0.1,1000);
       camera.position.set(0,1.5,3);
 
-      // Create renderer with mobile-friendly settings
-      let rendererOptions = {antialias:true, alpha:true};
-
-      // For mobile devices, reduce quality if needed
-      if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
-        console.log("🔹 Mobile device detected, optimizing renderer settings");
-        rendererOptions.powerPreference = 'high-performance';
-      }
-
-      const renderer = new THREE.WebGLRenderer(rendererOptions);
+      const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
       renderer.setSize(400,400);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio on mobile
       container3d.appendChild(renderer.domElement);
-      console.log("🔹 Renderer created", {
-        webglVersion: renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL1',
-        maxTextureSize: renderer.capabilities.maxTextureSize
-      });
   
       // Controls
       const controls = new OrbitControls(camera, renderer.domElement);
@@ -828,85 +794,20 @@ backValueButtons.forEach(btn => {
       console.log("🔹 Lighting added");
   
       const loader = new THREE.TextureLoader();
-      showStatus("Loading textures...");
       console.log("🔹 Loading front texture...");
       loader.load(frontURL, frontTex=>{
         console.log("✅ Front texture loaded");
         loader.load(backURL, backTex=>{
           console.log("✅ Back texture loaded");
-          showStatus("Textures loaded ✓");
 
           const frontMat = new THREE.MeshStandardMaterial({map:frontTex, metalness:0.2, roughness:0.4});
           const backMat = new THREE.MeshStandardMaterial({map:backTex, metalness:0.2, roughness:0.4});
 
-          // Function to create fallback simple chip geometry
-          function createFallbackChip() {
-            showStatus("Using simplified 3D chip model for mobile...");
-            console.log("🔹 Creating fallback cylinder chip");
-
-            const chipGroup = new THREE.Group();
-
-            // Create simple cylinder for chip body
-            const cylinderGeom = new THREE.CylinderGeometry(1, 1, 0.2, 64);
-            const chipMaterial = new THREE.MeshStandardMaterial({
-              color: 0xeeeeee,
-              metalness: 0.3,
-              roughness: 0.5
-            });
-            const cylinder = new THREE.Mesh(cylinderGeom, chipMaterial);
-            chipGroup.add(cylinder);
-
-            // Create circles for custom images
-            const innerCircleRadius = 0.95;
-            const innerCircleGeom = new THREE.CircleGeometry(innerCircleRadius, 64);
-
-            const frontCustomMesh = new THREE.Mesh(innerCircleGeom, frontMat);
-            frontCustomMesh.position.y = 0.101;
-            frontCustomMesh.rotation.x = -Math.PI/2;
-
-            const backCustomMesh = new THREE.Mesh(innerCircleGeom, backMat);
-            backCustomMesh.position.y = -0.101;
-            backCustomMesh.rotation.x = Math.PI/2;
-
-            chipGroup.add(frontCustomMesh, backCustomMesh);
-            scene.add(chipGroup);
-
-            // Set initial orientation
-            chipGroup.rotation.x = Math.PI * 0.15;
-            chipGroup.rotation.y = 0;
-            chipGroup.rotation.z = 0;
-
-            // Animate
-            let rotationSpeed=0.005;
-            function animate(){
-              requestAnimationFrame(animate);
-              if(!userIsInteracting){
-                chipGroup.rotation.z += rotationSpeed;
-              }
-              renderer.render(scene,camera);
-            }
-            animate();
-            showStatus("3D preview ready! ✓ (simplified for mobile)");
-            console.log("✅ Fallback chip animation started");
-          }
-
-          // Load GLB model with fallback
+          // Load GLB model
           const gltfLoader = new GLTFLoader();
-          showStatus("Loading 3D chip model...");
-          console.log("🔹 Starting GLB model load...");
-
-          // Use relative path - works better with GitHub Pages
-          const modelPath = './chip_3d_model/_model2.glb';
-          console.log("🔹 Model path:", modelPath);
-          console.log("🔹 Current location:", window.location.href);
-
-          gltfLoader.load(
-            modelPath,
-            // Success callback
-            (gltf)=>{
-              console.log("✅ GLB model loaded successfully", gltf);
-              showStatus("3D model loaded ✓");
-              const obj = gltf.scene;
+          gltfLoader.load('chip_3d_model/_model2.glb', (gltf)=>{
+            console.log("✅ GLB model loaded", gltf);
+            const obj = gltf.scene;
 
             // Rotate the model so that its z-axis becomes the y-axis
             obj.rotation.x = Math.PI / 2;
@@ -971,52 +872,15 @@ backValueButtons.forEach(btn => {
               renderer.render(scene,camera);
             }
             animate();
-            showStatus("3D preview ready! ✓");
             console.log("✅ Animation started with auto-rotation");
 
-          },
-          // Progress callback
-          (xhr)=>{
-            const percentComplete = xhr.total > 0 ? (xhr.loaded / xhr.total * 100).toFixed(2) : 'unknown';
-            console.log(`📦 GLB loading progress: ${percentComplete}% (${xhr.loaded} / ${xhr.total} bytes)`);
-            if (xhr.total > 0) {
-              showStatus(`Loading 3D model: ${percentComplete}%`);
-            }
-          },
-          // Error callback - use fallback cylinder chip
-          (err)=>{
-            console.error("❌ GLB model load error:", err);
-            console.log("❌ Error type:", typeof err);
-            console.log("❌ Error constructor:", err?.constructor?.name);
+          }, undefined, err=>console.error("❌ GLB model load error:",err));
 
-            // Log detailed error info
-            if (err instanceof ErrorEvent) {
-              console.error("❌ ErrorEvent:", err.message);
-              showStatus(`GLB load failed: ${err.message}. Using simplified chip...`);
-            } else if (err instanceof ProgressEvent) {
-              console.error("❌ ProgressEvent - likely network/CORS issue");
-              showStatus("Network error loading GLB. Using simplified chip...");
-            } else {
-              console.error("❌ Unknown error:", err);
-              showStatus("Error loading 3D model. Using simplified chip...");
-            }
-
-            console.log("🔹 Switching to fallback cylinder chip for mobile compatibility");
-            createFallbackChip();
-          });
-
-        },undefined,err=>{
-          console.error("❌ Back texture load error:",err);
-          showStatus(`Failed to load back texture: ${err.message || err}`, true);
-        });
-      },undefined,err=>{
-        console.error("❌ Front texture load error:",err);
-        showStatus(`Failed to load front texture: ${err.message || err}`, true);
-      });
+        },undefined,err=>console.error("❌ Back texture load error:",err));
+      },undefined,err=>console.error("❌ Front texture load error:",err));
 
     }catch(err){
       console.error("❌ Error initializing 3D preview:",err);
-      showStatus(`Error: ${err.message || err}`, true);
     }
   });
   </script>
