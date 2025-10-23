@@ -14,7 +14,12 @@ The repository contains three main HTML files:
 - `chip_designer_with_text.html` - Backup copy of full-featured version
 - `chip_designer_image_only.html` - Image-only editor (no text features)
 
-All files are self-contained single-page applications with inline CSS and JavaScript.
+Additional assets:
+- `chip_3d_model/` - Contains 3D models for chip preview
+  - `model2.glb` - GLB format 3D chip model (329KB) used for preview
+  - Note: Files must NOT start with underscore (_) as GitHub Pages/Jekyll ignores them
+
+All HTML files are self-contained single-page applications with inline CSS and JavaScript.
 
 ## Application Architecture
 
@@ -90,6 +95,19 @@ This ensures:
 - Arc expands/contracts based on actual text width
 - Spacing control affects arc length
 
+### Casino Chip Value Buttons (Back Side Only)
+
+For the back side, users can optionally load pre-generated casino chip value images:
+
+- **Value buttons**: 1, 5, 10, 25, 100 (no dollar signs in UI)
+- **Image generation**: `generateCasinoChipImage(value)` creates transparent PNG with single centered number
+- **Font style**: Italic bold Georgia serif for elegant casino aesthetic
+- **Colors**: Value-based colors (1=dark gray, 5=dark red, 10=dark blue, 25=dark green, 100=black)
+- **Size adjustment**: 100 uses smaller font (150px vs 180px) to fit in circle
+- **Styling**: Subtle drop shadow for depth
+- **Integration**: Uses `loadImageFromDataURL()` method to load generated image into back side canvas
+- **Text overlay**: Users can still add custom text on top of casino value images
+
 ### UI Layout
 
 Text editor controls are organized into 4 rows:
@@ -98,18 +116,25 @@ Text editor controls are organized into 4 rows:
 3. **Size & Spacing**: Range sliders with live value displays
 4. **Effects**: Dropdown for 3D text effects
 
+Additionally, the back side includes:
+- **Casino value buttons**: Row of buttons (1, 5, 10, 25, 100) below file upload
+- **Active state styling**: Green highlight when value is selected
+
 ### 3D Preview (Three.js-based)
 
 The 3D preview dynamically loads Three.js from CDN and creates an interactive 3D chip model:
 
 - **Dynamic Module Loading**: Uses ES6 module imports from Skypack CDN (`three@0.129.0`)
-- **Chip Geometry**: Composed of 5 meshes (cylinder, front circle, back circle, 2 beveled edges)
+- **GLTFLoader**: Loads `chip_3d_model/model2.glb` (GLB format 3D model)
+- **Model Orientation**: Rotates model `rotation.x = Math.PI / 2` to orient z-axis as y-axis
+- **Custom Textures**: Front/back custom images overlaid as circles with `innerCircleRadius = 0.57` to fit embossed area
 - **Textures**: Generated from the 2D canvas exports via `toDataURL()`
 - **Lighting**: Uses directional, ambient, and hemisphere lights for realistic appearance
-- **Auto-rotation**: Chip rotates automatically when user is not interacting
+- **Auto-rotation**: Chip rotates automatically (`rotation.z += 0.005`) when user is not interacting
 - **Materials**: PBR materials with metalness and roughness for realistic rendering
+- **OrbitControls**: Allows user to pan/zoom the 3D view (pan disabled, distance limited 2-6 units)
 
-The chip group is oriented with `rotation.x = Math.PI / 2` to show front-facing initially.
+The chip group is initially tilted `rotation.x = Math.PI * 0.15` (27 degrees) to show front face to user.
 
 ## Development Workflow
 
@@ -210,3 +235,23 @@ The application is designed for GitHub Pages:
 - No build process required
 - All dependencies loaded from CDN
 - Works entirely client-side (no server needed)
+
+### Important GitHub Pages Considerations
+
+**Jekyll File Naming**: GitHub Pages uses Jekyll which ignores files/folders starting with underscore (_)
+- ❌ `_model2.glb` - Will cause 404 errors on GitHub Pages
+- ✅ `model2.glb` - Works correctly
+- Always avoid underscore prefixes for assets that need to be served
+
+**Testing**:
+- Local server (e.g., `python3 -m http.server`) does NOT use Jekyll, so files with underscores work locally
+- Always test on actual GitHub Pages URL to catch Jekyll-specific issues
+- 404 errors on GitHub Pages but not locally often indicate underscore filename issue
+
+## Branding
+
+- **Title**: "LT Innovations Shop"
+- **Subtitle**: "2D + 3D Chip Design Preview"
+- **Copyright**: Lei (tkltian@gmail.com), GitHub: https://github.com/tkltian
+- **Privacy Notice**: Green banner explaining all processing is local (no server uploads)
+- **Edge Color Default**: Green (#2d8e3e) to match branding
