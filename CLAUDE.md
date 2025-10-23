@@ -252,6 +252,6 @@ The application is designed for GitHub Pages:
 
 - **Title**: "LT Innovations Shop"
 - **Subtitle**: "2D + 3D Chip Design Preview"
-- **Copyright**: Lei (tkltian@gmail.com), GitHub: https://github.com/tkltian
+- **Copyright**: LT Innovations LLC, GitHub: https://github.com/tkltian
 - **Privacy Notice**: Green banner explaining all processing is local (no server uploads)
 - **Edge Color Default**: Green (#2d8e3e) to match branding
