@@ -958,8 +958,22 @@ backValueButtons.forEach(btn => {
         loader.load(backURL, backTex=>{
           console.log("✅ Back texture loaded");
 
-          const frontMat = new THREE.MeshStandardMaterial({map:frontTex, metalness:0.2, roughness:0.4});
-          const backMat = new THREE.MeshStandardMaterial({map:backTex, metalness:0.2, roughness:0.4});
+          const frontMat = new THREE.MeshStandardMaterial({
+            map:frontTex,
+            metalness:0.2,
+            roughness:0.4,
+            transparent: true,  // Enable transparency
+            alphaTest: 0.1,     // Discard pixels with alpha < 0.1
+            side: THREE.DoubleSide  // Render both sides
+          });
+          const backMat = new THREE.MeshStandardMaterial({
+            map:backTex,
+            metalness:0.2,
+            roughness:0.4,
+            transparent: true,  // Enable transparency
+            alphaTest: 0.1,     // Discard pixels with alpha < 0.1
+            side: THREE.DoubleSide  // Render both sides
+          });
 
           // Load GLB model
           const gltfLoader = new GLTFLoader();
