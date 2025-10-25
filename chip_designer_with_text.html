@@ -62,24 +62,6 @@ h1 { margin-bottom:20px; }
     <div class="chip-title">Front Side</div>
     <div class="circle-container"><img class="circle-image" src=""></div>
     <input type="file" class="upload-input" accept="image/*">
-
-    <div class="bg-removal-section" style="margin-top:10px; padding:10px; background:#f9f9f9; border-radius:4px; border:1px solid #ddd;">
-      <div style="font-weight:bold; font-size:13px; margin-bottom:5px;">🎨 Remove Background (Optional)</div>
-      <div style="font-size:11px; color:#666; margin-bottom:8px; line-height:1.4;">
-        Remove solid-colored backgrounds (like white) from your image. Pick the background color and adjust tolerance to remove similar shades.
-      </div>
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <label style="font-size:12px;">
-          Color: <input type="color" class="bg-color-picker" value="#ffffff" style="width:40px; height:25px; cursor:pointer;">
-        </label>
-        <label style="font-size:12px; display:flex; align-items:center; gap:5px;">
-          Tolerance: <input type="range" class="bg-tolerance" min="0" max="100" value="30" style="width:80px;">
-          <span class="bg-tolerance-value" style="font-weight:bold;">30</span>
-        </label>
-        <button class="remove-bg-btn" style="padding:5px 10px; background:#ff6b6b; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px;" disabled>Remove BG</button>
-      </div>
-    </div>
-
     <p class="instructions">💡 Drag image/text | Scroll to zoom image | Use controls below to customize text</p>
     <button class="download-btn" disabled>Download Front</button>
     <p style="margin-top:6px; font-size:12px; color:#666; font-style:italic; max-width:300px;">
@@ -132,14 +114,8 @@ h1 { margin-bottom:20px; }
         </select>
       </div>
     </div>
-  </div>
 
-  <div class="chip-section" id="back-chip">
-    <div class="chip-title">Back Side</div>
-    <div class="circle-container"><img class="circle-image" src=""></div>
-    <input type="file" class="upload-input" accept="image/*">
-
-    <div class="bg-removal-section" style="margin-top:10px; padding:10px; background:#f9f9f9; border-radius:4px; border:1px solid #ddd;">
+    <div class="bg-removal-section" style="margin-top:15px; padding:10px; background:#f9f9f9; border-radius:4px; border:1px solid #ddd;">
       <div style="font-weight:bold; font-size:13px; margin-bottom:5px;">🎨 Remove Background (Optional)</div>
       <div style="font-size:11px; color:#666; margin-bottom:8px; line-height:1.4;">
         Remove solid-colored backgrounds (like white) from your image. Pick the background color and adjust tolerance to remove similar shades.
@@ -153,9 +129,15 @@ h1 { margin-bottom:20px; }
           <span class="bg-tolerance-value" style="font-weight:bold;">30</span>
         </label>
         <button class="remove-bg-btn" style="padding:5px 10px; background:#ff6b6b; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px;" disabled>Remove BG</button>
+        <button class="undo-bg-btn" style="padding:5px 10px; background:#6c757d; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px; display:none;">Undo</button>
       </div>
     </div>
+  </div>
 
+  <div class="chip-section" id="back-chip">
+    <div class="chip-title">Back Side</div>
+    <div class="circle-container"><img class="circle-image" src=""></div>
+    <input type="file" class="upload-input" accept="image/*">
     <div class="casino-values">
       <small style="width:100%; text-align:center; color:#666; margin-bottom:-4px;">Or use generic casino chip value:</small>
       <button class="casino-value-btn" data-value="1">1</button>
@@ -214,6 +196,24 @@ h1 { margin-bottom:20px; }
           <option value="outline">Bold Outline</option>
           <option value="glow">Glow</option>
         </select>
+      </div>
+    </div>
+
+    <div class="bg-removal-section" style="margin-top:15px; padding:10px; background:#f9f9f9; border-radius:4px; border:1px solid #ddd;">
+      <div style="font-weight:bold; font-size:13px; margin-bottom:5px;">🎨 Remove Background (Optional)</div>
+      <div style="font-size:11px; color:#666; margin-bottom:8px; line-height:1.4;">
+        Remove solid-colored backgrounds (like white) from your image. Pick the background color and adjust tolerance to remove similar shades.
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <label style="font-size:12px;">
+          Color: <input type="color" class="bg-color-picker" value="#ffffff" style="width:40px; height:25px; cursor:pointer;">
+        </label>
+        <label style="font-size:12px; display:flex; align-items:center; gap:5px;">
+          Tolerance: <input type="range" class="bg-tolerance" min="0" max="100" value="30" style="width:80px;">
+          <span class="bg-tolerance-value" style="font-weight:bold;">30</span>
+        </label>
+        <button class="remove-bg-btn" style="padding:5px 10px; background:#ff6b6b; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px;" disabled>Remove BG</button>
+        <button class="undo-bg-btn" style="padding:5px 10px; background:#6c757d; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px; display:none;">Undo</button>
       </div>
     </div>
   </div>
@@ -298,6 +298,10 @@ function setupChipEditor(section) {
   const bgTolerance = section.querySelector('.bg-tolerance');
   const bgToleranceValue = section.querySelector('.bg-tolerance-value');
   const removeBgBtn = section.querySelector('.remove-bg-btn');
+  const undoBgBtn = section.querySelector('.undo-bg-btn');
+
+  // Store original image before background removal
+  let imageBeforeRemoval = null;
 
   if(bgTolerance && bgToleranceValue) {
     bgTolerance.addEventListener('input', ()=>{
@@ -308,6 +312,9 @@ function setupChipEditor(section) {
   if(removeBgBtn) {
     removeBgBtn.addEventListener('click', ()=>{
       if(!originalImage.src) return;
+
+      // Save current image for undo
+      imageBeforeRemoval = originalImage.src;
 
       // Get the selected color
       const hexColor = bgColorPicker.value;
@@ -360,6 +367,28 @@ function setupChipEditor(section) {
       originalImage.onload = ()=>{
         drawCanvas();
         console.log('✅ Background removed');
+        // Show undo button
+        if(undoBgBtn) undoBgBtn.style.display = 'inline-block';
+      };
+    });
+  }
+
+  // Undo button functionality
+  if(undoBgBtn) {
+    undoBgBtn.addEventListener('click', ()=>{
+      if(!imageBeforeRemoval) return;
+
+      // Restore the image before background removal
+      originalImage.src = imageBeforeRemoval;
+      image.src = imageBeforeRemoval;
+
+      // Redraw
+      originalImage.onload = ()=>{
+        drawCanvas();
+        console.log('✅ Background removal undone');
+        // Hide undo button
+        undoBgBtn.style.display = 'none';
+        imageBeforeRemoval = null;
       };
     });
   }
