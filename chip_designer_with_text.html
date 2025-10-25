@@ -266,7 +266,7 @@ function setupChipEditor(section) {
   canvas.width = 300;
   canvas.height = 300;
   container.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { alpha: true }); // Enable alpha channel for transparency
 
   let scale = 1, offset={x:0,y:0}, dragging=false, start={x:0,y:0};
   let originalImage = new Image();
@@ -593,8 +593,11 @@ function setupChipEditor(section) {
 
   function drawCanvas(){
     const size=300;
+    // Clear entire canvas to transparent
     ctx.clearRect(0,0,size,size);
+
     ctx.save();
+    // Clip to circular region
     ctx.beginPath();
     ctx.arc(size/2,size/2,size/2,0,Math.PI*2);
     ctx.closePath();
