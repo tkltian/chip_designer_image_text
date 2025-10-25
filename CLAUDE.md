@@ -108,6 +108,27 @@ For the back side, users can optionally load pre-generated casino chip value ima
 - **Integration**: Uses `loadImageFromDataURL()` method to load generated image into back side canvas
 - **Text overlay**: Users can still add custom text on top of casino value images
 
+### Background Removal Feature
+
+Both front and back sides include optional background removal functionality:
+
+- **Location**: Bottom of each chip section (after text editor)
+- **Color Picker**: Select background color to remove (defaults to white #FFFFFF)
+- **Tolerance Slider**: 0-100 range to remove similar shades
+  - Low (0-20): Only exact color matches
+  - Medium (20-40): Similar shades
+  - High (40-100): Broader color range
+- **Algorithm**: Euclidean distance in RGB color space
+- **Undo Functionality**: Restores original image before background removal
+- **Client-side Processing**: Uses Canvas API, no server uploads
+- **Transparency Support**: Properly exports transparent PNGs
+
+**Implementation Details:**
+- Stores `imageBeforeRemoval` for undo
+- Processes pixel-by-pixel using `getImageData()`
+- Sets alpha channel to 0 for matching pixels
+- Distance threshold: `tolerance * 4.41` (scales to max RGB distance of 441)
+
 ### UI Layout
 
 Text editor controls are organized into 4 rows:
@@ -120,6 +141,9 @@ Additionally, the back side includes:
 - **Casino value buttons**: Row of buttons (1, 5, 10, 25, 100) below file upload
 - **Active state styling**: Green highlight when value is selected
 
+Each chip section ends with:
+- **Background Removal**: Optional section with color picker, tolerance slider, Remove BG and Undo buttons
+
 ### 3D Preview (Three.js-based)
 
 The 3D preview dynamically loads Three.js from CDN and creates an interactive 3D chip model:
@@ -129,6 +153,10 @@ The 3D preview dynamically loads Three.js from CDN and creates an interactive 3D
 - **Model Orientation**: Rotates model `rotation.x = Math.PI / 2` to orient z-axis as y-axis
 - **Custom Textures**: Front/back custom images overlaid as circles with `innerCircleRadius = 0.57` to fit embossed area
 - **Textures**: Generated from the 2D canvas exports via `toDataURL()`
+- **Transparency Support**: Materials use `transparent: true`, `alphaTest: 0.1`, `side: THREE.DoubleSide`
+  - Transparent areas of custom images show the underlying GLB chip model
+  - Proper alpha blending for background-removed images
+  - Base chip colors/textures visible through transparent regions
 - **Lighting**: Uses directional, ambient, and hemisphere lights for realistic appearance
 - **Auto-rotation**: Chip rotates automatically (`rotation.z += 0.005`) when user is not interacting
 - **Materials**: PBR materials with metalness and roughness for realistic rendering
